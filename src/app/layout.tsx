@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: 'Studio Mancini',
   },
 };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#171A18', colorScheme: 'light' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#141715', colorScheme: 'dark' };
 export default function Layout({ children }: { children: ReactNode }) {
-  return <html lang="pt-BR"><body><a className="skip-link" href="#conteudo">Pular para o conteúdo</a>{children}</body></html>;
+  return <html lang="pt-BR" data-theme="dark"><body><a className="skip-link" href="#conteudo">Pular para o conteúdo</a>{children}</body></html>;
 }
