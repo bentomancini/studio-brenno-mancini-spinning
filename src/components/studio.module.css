@@ -5,7 +5,7 @@
 .hero { max-width: 1264px; margin: auto; padding: 96px 32px 80px; position: relative; }
 .hero h1 { font: 700 72px/1 var(--display); letter-spacing: -.025em; max-width: 800px; margin: 0 0 32px; }
 .hero h1 span { color: var(--accent-inverse); }
-.hero > p { color: var(--inverse-secondary); max-width: 400px; font-size: 20px; line-height: 28px; margin-bottom: 32px; }
+.hero > p { color: var(--inverse-secondary); max-width: 440px; font-size: 20px; line-height: 28px; margin-bottom: 32px; }
 .hero :global(.button) { background: var(--accent-inverse); color: var(--inverse); min-width: 176px; }
 .hero :global(.button):hover { background: #ffa384; color: var(--inverse); }
 .cadence { height: 64px; margin: 64px 0 0; border-bottom: 1px solid #788078; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(8.333% - 1px), #788078 calc(8.333% - 1px), #788078 8.333%) bottom / 100% 12px no-repeat; position: relative; }
@@ -15,65 +15,146 @@
 .landingInfo h2 { font: 700 48px/1 var(--display); max-width: 400px; }
 .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
 .steps li { border-top: 1px solid var(--border); padding: 24px 0; counter-increment: step; display: grid; grid-template-columns: 32px 1fr; gap: 16px; }
-.steps li::before { content: counter(step, decimal-leading-zero); color: var(--accent); font-variant-numeric: tabular-nums; }
+.steps li::before { content: counter(step, decimal-leading-zero); color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 700; }
 .steps p { color: var(--secondary); margin-bottom: 0; }
 .footer { max-width: 1264px; margin: auto; padding: 32px; display: flex; gap: 24px; align-items: center; justify-content: space-between; color: var(--inverse-secondary); font-size: 14px; }
 .footer p { margin: 0; max-width: 430px; }
 .footer a { color: var(--inverse-text); min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Telas de Autenticação (Login, Cadastro, Recuperar) */
 .authMain { min-height: calc(100svh - 100px); display: grid; grid-template-columns: 1fr 1fr; max-width: 1264px; margin: auto; padding: 48px 32px 80px; gap: 96px; align-items: center; }
-.authIntro { max-width: 400px; }
-.authIntro h2 { font: 700 64px/1 var(--display); letter-spacing: -.02em; }
-.authIntro p { color: var(--secondary); max-width: 320px; }
+.authIntro { max-width: 420px; }
+.authIntro h2 { font: 700 64px/1 var(--display); letter-spacing: -.02em; margin-bottom: 16px; }
+.authIntro p { color: var(--secondary); max-width: 340px; font-size: 18px; line-height: 1.5; }
 .authIntro .cadence { margin-top: 40px; }
 .authIntro .cadence::before { background: var(--accent); }
-.authForm { width: 100%; max-width: 440px; margin: auto; }
-.authForm h1 { margin-bottom: 12px; }
-.authForm > p { color: var(--secondary); margin-bottom: 32px; }
-.authLinks { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
-.authLinks a { min-height: 44px; display: inline-flex; align-items: center; }
-.appHeader { background: var(--surface); border-bottom: 1px solid var(--border); }
-.appHeaderInner { display: flex; align-items: center; gap: 32px; min-height: 88px; padding: 16px 32px; max-width: 1184px; margin: auto; }
+.authForm { width: 100%; max-width: 440px; margin: auto; background: var(--surface); padding: 36px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
+.authForm h1 { margin-bottom: 8px; font-size: 28px; }
+.authForm > p { color: var(--secondary); margin-bottom: 28px; font-size: 15px; }
+.authLinks { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 14px; }
+.authLinks a { min-height: 40px; display: inline-flex; align-items: center; font-weight: 600; }
+
+/* Header e Navegação do Aluno */
+.appHeader { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 15; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.appHeaderInner { display: flex; align-items: center; gap: 32px; min-height: 80px; padding: 12px 32px; max-width: 1200px; margin: auto; }
 .studentNav { display: flex; align-items: stretch; gap: 8px; margin-left: auto; }
-.studentNav a { color: var(--secondary); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; min-height: 48px; border-bottom: 2px solid transparent; padding: 8px 12px; }
-.studentNav a[aria-current=page] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
-.studentNav a:hover { background: var(--canvas); }
-.studentMain { max-width: 1184px; padding: 40px 32px 64px; margin: auto; min-height: calc(100svh - 89px); }
-.adminShell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100svh; }
-.sidebar { background: #ecefe8; border-right: 1px solid var(--border); padding: 32px 20px; position: sticky; top: 0; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; }
-.sidebar :global(.brand) { margin: 0 8px 32px; }
+.studentNav a { color: var(--secondary); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; min-height: 44px; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 15px; transition: all 0.15s ease; }
+.studentNav a[aria-current=page] { color: var(--accent); background: #ad371c0d; }
+.studentNav a:hover:not([aria-current=page]) { background: var(--neutral-bg); color: var(--text); }
+.studentMain { max-width: 1200px; padding: 40px 32px 72px; margin: auto; min-height: calc(100svh - 81px); }
+
+/* Shell do Administrador */
+.adminShell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100svh; }
+.sidebar { background: #fbfbf9; border-right: 1px solid var(--border); padding: 32px 20px; position: sticky; top: 0; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; }
+.sidebar :global(.brand) { margin: 0 10px 32px; }
 .adminNav { display: grid; gap: 4px; }
-.navGroup { margin: 20px 12px 4px; color: var(--secondary); font-size: 13px; }
-.adminNav a { color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; border-radius: 6px; min-height: 44px; padding: 10px 12px; }
-.adminNav a[aria-current=page] { background: #ad371c12; color: var(--accent); font-weight: 600; }
-.adminNav a:hover { background: #d7dbd580; }
-.sidebarFoot { margin-top: auto; padding: 24px 8px 0; display: grid; gap: 8px; }
-.adminContent { min-width: 0; }
-.adminBar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 12px 32px; border-bottom: 1px solid var(--border); background: var(--surface); gap: 12px; }
+.navGroup { margin: 24px 12px 6px; color: var(--secondary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.adminNav a { color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; border-radius: 8px; min-height: 44px; padding: 10px 14px; font-weight: 500; font-size: 15px; transition: all 0.15s ease; }
+.adminNav a[aria-current=page] { background: #ad371c12; color: var(--accent); font-weight: 700; }
+.adminNav a:hover:not([aria-current=page]) { background: #ecefea; }
+.sidebarFoot { margin-top: auto; padding: 24px 8px 0; display: grid; gap: 10px; border-top: 1px solid var(--border); }
+.adminContent { min-width: 0; background: var(--canvas); }
+.adminBar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 12px 36px; border-bottom: 1px solid var(--border); background: var(--surface); gap: 12px; }
 .adminBar > button { display: none; }
 .adminBar span { font-size: 14px; color: var(--secondary); }
-.adminMain { padding: 32px; max-width: 1440px; margin: auto; }
+.adminMain { padding: 36px; max-width: 1400px; margin: auto; }
 .offline { background: var(--warning-bg); color: var(--warning); padding: 12px 24px; text-align: center; }
-.drawerNav { display: grid; }
-.drawerNav a { display: flex; padding: 12px; min-height: 48px; text-decoration: none; color: var(--text); }
-.drawerNav a[aria-current=page] { background: var(--neutral-bg); color: var(--accent); }
+.drawerNav { display: grid; gap: 4px; padding: 16px 0; }
+.drawerNav a { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 48px; text-decoration: none; color: var(--text); font-weight: 500; border-radius: 8px; }
+.drawerNav a[aria-current=page] { background: #ad371c12; color: var(--accent); font-weight: 700; }
 .statusPage { max-width: 680px; padding: 64px 24px; margin: auto; }
 .statusPage :global(.brand) { margin-bottom: 64px; }
+
 :global(html[data-studio-keyboard=open]) .studentNav { position: static; flex-basis: 100%; }
 :global(html[data-studio-keyboard=open]) .appHeaderInner { flex-wrap: wrap; }
 :global(html[data-studio-keyboard=open]) .studentMain { padding-bottom: 32px; }
-@media(max-width: 1023px) { .authMain { gap: 48px; } .appHeaderInner { gap: 16px; } .studentNav { gap: 0; } .studentNav a { padding-inline: 8px; } .studentNav svg { display: none; } .adminShell { grid-template-columns: 208px minmax(0, 1fr); } .sidebar { padding-inline: 12px; } .adminMain { padding: 24px; } }
-@media(max-width: 767px) {
-  .publicHeader { padding: 20px 16px; gap: 12px; } .publicNav { gap: 16px; } .publicNav :global(.button) { display: none; }
-  .hero { padding: 64px 16px 48px; } .hero h1 { font-size: 44px; line-height: 46px; } .hero > p { font-size: 18px; line-height: 26px; max-width: 300px; }
-  .cadence { margin-top: 48px; } .landingInfo { padding: 48px 16px; } .landingInfoInner { grid-template-columns: 1fr; gap: 32px; } .landingInfo h2 { font-size: 36px; }
-  .footer { padding: 32px 16px; flex-wrap: wrap; }
-  .authMain { display: block; padding: 32px 16px 64px; min-height: auto; } .authIntro { display: none; }
-  .appHeaderInner { min-height: 76px; padding: 16px; justify-content: space-between; }
-  .studentNav { position: fixed; z-index: 20; bottom: 0; left: 0; right: 0; margin: 0; justify-content: space-around; background: var(--surface); border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
-  .studentNav a { flex: 1; flex-direction: column; gap: 3px; font-size: 12px; line-height: 16px; min-height: 52px; border: 0; border-top: 2px solid transparent; padding: 4px; }
-  .studentNav svg { display: block; } .studentNav a[aria-current=page] { border-top-color: var(--accent); }
-  .studentMain { padding: 24px 16px calc(104px + env(safe-area-inset-bottom)); min-height: calc(100svh - 77px); }
-  .adminShell { display: block; } .sidebar { display: none; } .adminBar { padding: 12px 16px; } .adminBar > button { display: flex; } .adminMain { padding: 24px 16px 48px; }
+
+/* Responsividade Tablet (até 1023px) */
+@media(max-width: 1023px) {
+  .authMain { gap: 48px; padding-inline: 24px; }
+  .appHeaderInner { gap: 16px; padding-inline: 24px; }
+  .studentNav { gap: 4px; }
+  .studentNav a { padding-inline: 10px; font-size: 14px; }
+  .adminShell { grid-template-columns: 220px minmax(0, 1fr); }
+  .sidebar { padding-inline: 14px; }
+  .adminMain { padding: 24px; }
 }
-@media(max-width: 380px) { .publicHeader :global(.brand) { font-size: 14px; } }
-@media(max-height: 500px) { .studentNav { position: static; } .appHeaderInner { flex-wrap: wrap; } .studentNav { flex-basis: 100%; } .studentMain { padding-bottom: 32px; } }
+
+/* Responsividade Mobile (Celulares até 767px) */
+@media(max-width: 767px) {
+  .publicHeader { padding: 16px 20px; gap: 12px; }
+  .publicNav { gap: 14px; }
+  .publicNav :global(.button) { display: none; }
+  .hero { padding: 56px 20px 40px; }
+  .hero h1 { font-size: 42px; line-height: 44px; margin-bottom: 20px; }
+  .hero > p { font-size: 17px; line-height: 24px; max-width: 320px; margin-bottom: 24px; }
+  .cadence { margin-top: 40px; }
+  .landingInfo { padding: 48px 20px; }
+  .landingInfoInner { grid-template-columns: 1fr; gap: 32px; }
+  .landingInfo h2 { font-size: 34px; }
+  .footer { padding: 28px 20px; flex-wrap: wrap; }
+
+  .authMain { display: block; padding: 24px 16px 64px; min-height: auto; }
+  .authIntro { display: none; }
+  .authForm { padding: 24px 20px; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
+
+  .appHeaderInner { min-height: 68px; padding: 12px 16px; justify-content: space-between; }
+  
+  /* Bottom Nav estilo App Nativo no celular */
+  .studentNav {
+    position: fixed;
+    z-index: 50;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(215, 219, 213, 0.8);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.05);
+    padding: 6px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .studentNav a {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    line-height: 14px;
+    min-height: 52px;
+    border-radius: 8px;
+    border: 0;
+    padding: 6px 4px;
+  }
+  .studentNav svg { display: block; width: 22px; height: 22px; }
+  .studentNav a[aria-current=page] {
+    background: transparent;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .studentNav a[aria-current=page] svg {
+    stroke-width: 2.5;
+  }
+  .studentMain {
+    padding: 20px 16px calc(96px + env(safe-area-inset-bottom));
+    min-height: calc(100svh - 69px);
+  }
+
+  .adminShell { display: block; }
+  .sidebar { display: none; }
+  .adminBar { padding: 12px 16px; }
+  .adminBar > button { display: flex; }
+  .adminMain { padding: 20px 16px 48px; }
+}
+
+@media(max-width: 380px) {
+  .publicHeader :global(.brand) { font-size: 14px; }
+}
+
+@media(max-height: 500px) {
+  .studentNav { position: static; }
+  .appHeaderInner { flex-wrap: wrap; }
+  .studentNav { flex-basis: 100%; }
+  .studentMain { padding-bottom: 32px; }
+}
