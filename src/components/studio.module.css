@@ -34,14 +34,18 @@
 .authLinks { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 14px; }
 .authLinks a { min-height: 40px; display: inline-flex; align-items: center; font-weight: 600; }
 
-/* Header e Navegação do Aluno */
+/* Header e Navegação do Aluno (Desktop) */
 .appHeader { background: rgba(20, 23, 21, 0.85); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 15; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .appHeaderInner { display: flex; align-items: center; gap: 32px; min-height: 80px; padding: 12px 32px; max-width: 1200px; margin: auto; }
-.studentNav { display: flex; align-items: stretch; gap: 8px; margin-left: auto; }
-.studentNav a { color: var(--secondary); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; min-height: 44px; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 15px; transition: all 0.15s ease; }
-.studentNav a[aria-current=page] { color: var(--accent); background: rgba(255, 135, 95, 0.12); }
-.studentNav a:hover:not([aria-current=page]) { background: var(--neutral-bg); color: var(--text); }
+.desktopStudentNav { display: flex; align-items: stretch; gap: 8px; margin-left: auto; }
+.desktopStudentNav a { color: var(--secondary); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; min-height: 44px; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 15px; transition: all 0.15s ease; }
+.desktopStudentNav a[aria-current=page] { color: var(--accent); background: rgba(255, 135, 95, 0.12); }
+.desktopStudentNav a:hover:not([aria-current=page]) { background: var(--neutral-bg); color: var(--text); }
 .studentMain { max-width: 1200px; padding: 40px 32px 72px; margin: auto; min-height: calc(100svh - 81px); }
+
+/* Barra de Navegação Inferior (Mobile Bottom Bar) */
+.mobileBottomNav { display: none; }
+.tabItem { display: none; }
 
 /* Shell do Administrador */
 .adminShell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100svh; }
@@ -65,16 +69,16 @@
 .statusPage { max-width: 680px; padding: 64px 24px; margin: auto; }
 .statusPage :global(.brand) { margin-bottom: 64px; }
 
-:global(html[data-studio-keyboard=open]) .studentNav { position: static; flex-basis: 100%; }
-:global(html[data-studio-keyboard=open]) .appHeaderInner { flex-wrap: wrap; }
-:global(html[data-studio-keyboard=open]) .studentMain { padding-bottom: 32px; }
+:global(html[data-studio-keyboard=open]) .mobileBottomNav { display: none !important; }
+:global(html[data-studio-keyboard=open]) .studentMain,
+:global(html[data-studio-keyboard=open]) .adminMain { padding-bottom: 24px !important; }
 
 /* Responsividade Tablet (até 1023px) */
 @media(max-width: 1023px) {
   .authMain { gap: 48px; padding-inline: 24px; }
   .appHeaderInner { gap: 16px; padding-inline: 24px; }
-  .studentNav { gap: 4px; }
-  .studentNav a { padding-inline: 10px; font-size: 14px; }
+  .desktopStudentNav { gap: 4px; }
+  .desktopStudentNav a { padding-inline: 10px; font-size: 14px; }
   .adminShell { grid-template-columns: 220px minmax(0, 1fr); }
   .sidebar { padding-inline: 14px; }
   .adminMain { padding: 24px; }
@@ -98,64 +102,122 @@
   .authIntro { display: none; }
   .authForm { padding: 24px 20px; border-radius: 14px; }
 
-  .appHeaderInner { min-height: 68px; padding: 12px 16px; justify-content: space-between; }
+  /* Top Bar enxuta no mobile */
+  .appHeader { background: rgba(18, 22, 19, 0.92); border-bottom: 1px solid var(--border); }
+  .appHeaderInner { min-height: 52px; padding: 8px 16px; justify-content: space-between; }
+  .desktopStudentNav { display: none !important; }
   
-  /* Bottom Nav estilo App Nativo no celular */
-  .studentNav {
+  /* Bottom Bar Nativa, Rápida e Intuitiva */
+  .mobileBottomNav {
+    display: flex;
     position: fixed;
-    z-index: 50;
+    z-index: 100;
     bottom: 0;
     left: 0;
     right: 0;
     margin: 0;
-    justify-content: space-around;
-    background: rgba(20, 23, 21, 0.94);
+    background: rgba(18, 22, 19, 0.94);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.6);
-    padding: 6px 12px calc(8px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.65);
+    padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    align-items: center;
   }
-  .studentNav a {
+  
+  .tabItem {
     flex: 1;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
-    gap: 3px;
-    font-size: 11px;
-    line-height: 14px;
-    min-height: 52px;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
     border-radius: 8px;
     border: 0;
-    padding: 6px 4px;
-    color: var(--secondary);
-  }
-  .studentNav svg { display: block; width: 22px; height: 22px; }
-  .studentNav a[aria-current=page] {
     background: transparent;
+    padding: 4px 2px;
+    color: var(--secondary);
+    text-decoration: none;
+    font-size: 11px;
+    line-height: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, transform 0.08s ease;
+  }
+  .tabItem:active {
+    transform: scale(0.92);
+    opacity: 0.8;
+  }
+  
+  .tabIcon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+  }
+  .tabIcon svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.8;
+    transition: stroke-width 0.15s ease, stroke 0.15s ease;
+  }
+  
+  .tabItem.activeTab,
+  .tabItem[aria-current=page] {
     color: var(--accent);
     font-weight: 700;
   }
-  .studentNav a[aria-current=page] svg {
-    stroke-width: 2.5;
+  .tabItem.activeTab .tabIcon svg,
+  .tabItem[aria-current=page] .tabIcon svg {
+    stroke-width: 2.3;
+    stroke: var(--accent);
+    filter: drop-shadow(0 0 8px rgba(255, 135, 95, 0.45));
   }
+  
+  .activeDot {
+    position: absolute;
+    bottom: -3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+
   .studentMain {
-    padding: 20px 16px calc(96px + env(safe-area-inset-bottom));
-    min-height: calc(100svh - 69px);
+    padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(100svh - 55px);
   }
 
   .adminShell { display: block; }
   .sidebar { display: none; }
-  .adminBar { padding: 12px 16px; }
+  .adminBar {
+    min-height: 52px;
+    padding: 8px 16px;
+    justify-content: space-between;
+  }
   .adminBar > button { display: flex; }
-  .adminMain { padding: 20px 16px 48px; }
+  .adminMain {
+    padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @media(max-width: 380px) {
   .publicHeader :global(.brand) { font-size: 14px; }
+  .tabItem { font-size: 10px; }
+  .tabIcon svg { width: 20px; height: 20px; }
 }
 
-@media(max-height: 500px) {
-  .studentNav { position: static; }
-  .appHeaderInner { flex-wrap: wrap; }
-  .studentNav { flex-basis: 100%; }
-  .studentMain { padding-bottom: 32px; }
+@media(max-height: 480px) {
+  .mobileBottomNav { display: none; }
+  .studentMain, .adminMain { padding-bottom: 24px; }
 }

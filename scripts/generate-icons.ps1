@@ -51,3 +51,4 @@ Create-Studio-Icon 180 "$publicDir\apple-touch-icon.png"
 Create-Studio-Icon 180 "$publicDir\apple-touch-icon-precomposed.png"
 Create-Studio-Icon 192 "$publicDir\icon-192.png"
 Create-Studio-Icon 512 "$publicDir\icon-512.png"
+
