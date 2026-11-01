@@ -17,6 +17,11 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const scope = url.searchParams.get('flow') === 'recovery' ? 'recovery' : 'normal';
+  const tokenHash = url.searchParams.get('token_hash');
+  if (tokenHash) {
+    const type = url.searchParams.get('type') ?? (scope === 'recovery' ? 'recovery' : 'signup');
+    return NextResponse.redirect(`${config.APP_ORIGIN}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`, { status: 303 });
+  }
   let status = 'invalid_link';
   try {
     const code = url.searchParams.get('code');

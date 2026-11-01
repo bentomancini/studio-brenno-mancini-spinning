@@ -29,10 +29,27 @@ export async function POST(request: Request) {
     await authRateLimit(request, 'confirm');
     const scope = input.type === 'recovery' ? 'recovery' : 'normal'; const client = await serverClient(scope);
     const { error } = await client.auth.verifyOtp({ token_hash: input.tokenHash, type: input.type });
-    if (error) { await clearAuthCookies(scope); throw new ApiError(401, 'CONFIRMATION_INVALID'); }
-    if (scope === 'recovery') { await grantRecovery(client); return { recoveryVerified: true, nextAction: 'POST /api/v1/auth/reset-password' }; }
+    if (error) {
+      console.error('[auth/confirm] verifyOtp error:', error.message || error);
+      await clearAuthCookies(scope);
+      throw new ApiError(401, 'CONFIRMATION_INVALID');
+    }
+    if (scope === 'recovery') {
+      try {
+        await grantRecovery(client);
+      } catch (err) {
+        console.error('[auth/confirm] grantRecovery error:', err);
+        throw err;
+      }
+      return { recoveryVerified: true, nextAction: 'POST /api/v1/auth/reset-password' };
+    }
     return establish(client);
   });
-  if (response.ok) return new NextResponse(null, { status: 303, headers: { ...privateHeaders(randomUUID()), Location: `/auth/result?status=${recovery ? 'recovery_verified' : 'authenticated'}` } });
+  if (response.ok) {
+    const res = new NextResponse(null, { status: 303, headers: { ...privateHeaders(randomUUID()), Location: `/auth/result?status=${recovery ? 'recovery_verified' : 'authenticated'}` } });
+    const setCookies = response.headers.getSetCookie?.() ?? [];
+    for (const sc of setCookies) res.headers.append('Set-Cookie', sc);
+    return res;
+  }
   return authDocument(randomUUID(), response.status >= 500 ? 'Validação indisponível' : 'Não foi possível confirmar o acesso', response.status >= 500 ? 'Não foi possível validar este link agora. Solicite um novo link antes de tentar novamente.' : 'Este link não pôde ser validado. Ele pode ter expirado ou já ter sido utilizado. Solicite um novo link.', response.status);
 }

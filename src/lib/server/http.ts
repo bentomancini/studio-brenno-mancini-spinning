@@ -7,7 +7,17 @@ import { env } from './env';
 import { uuid } from '@/contracts';
 
 export function assertOrigin(request: Request) {
-  if (request.headers.get('origin') !== env().APP_ORIGIN || request.headers.get('sec-fetch-site') === 'cross-site') throw new ApiError(403, 'CSRF_REJECTED');
+  const origin = request.headers.get('origin');
+  const allowed = env().APP_ORIGIN;
+  if (origin) {
+    if (origin !== allowed || request.headers.get('sec-fetch-site') === 'cross-site') throw new ApiError(403, 'CSRF_REJECTED');
+    return;
+  }
+  const referer = request.headers.get('referer');
+  if (referer && referer.startsWith(`${allowed}/`) && request.headers.get('sec-fetch-site') !== 'cross-site') {
+    return;
+  }
+  throw new ApiError(403, 'CSRF_REJECTED');
 }
 export function expectedActor(request: Request, actualActor: string): string {
   // This is an intent binding, never identity or permission. Actual actor is server-validated.
