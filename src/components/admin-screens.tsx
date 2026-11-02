@@ -75,7 +75,7 @@ export function SessionEditor({ session, inventory, onClose, onSaved }: { sessio
     const body = { ...values, startsAt: new Date(values.startsAt).toISOString(), endsAt: new Date(values.endsAt).toISOString(), capacity: Number(values.capacity), bikeIds };
     const parsed = (session ? sessionUpdate : sessionCreate).safeParse(body);
     const failures: Record<string, string> = {};
-    if (!parsed.success) parsed.error.issues.forEach(issue => { failures[String(issue.path[0])] = issue.path[0] === 'timezone' ? 'Informe um fuso IANA válido.' : 'Confira este campo e seus limites.'; });
+    if (!parsed.success) parsed.error.issues.forEach(issue => { failures[String(issue.path[0])] = 'Confira este campo e seus limites.'; });
     if (Date.parse(body.endsAt) <= Date.parse(body.startsAt)) failures.endsAt = 'O fim precisa ser posterior ao início.';
     setErrors(failures); if (!parsed.success || Object.keys(failures).length) { focusInvalid(event.currentTarget); return; }
     setBusy(true); setError(undefined);

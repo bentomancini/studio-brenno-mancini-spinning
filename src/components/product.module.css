@@ -53,7 +53,9 @@
 
 .bookingPanel { padding: 28px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 8px 32px rgba(0,0,0,0.4); align-self: start; position: sticky; top: 24px; }
 .bookingPanel h2 { font-size: 24px; margin-bottom: 8px; }
-.bookingPanel > :global(.notice), .bookingPanel > :global(.button) { margin-top: 18px; }
+.bookingPanel > :global(.notice), .bookingPanel > :global(.button) { margin-top: 20px; }
+.bookingPanel > :global(.button) { margin-bottom: 14px; }
+.bookingPanel p.hint { margin-top: 12px; margin-bottom: 16px; }
 
 /* Grid de Spots / Bicicletas estilo Estúdio de Spinning */
 .bikeList { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-block: 20px; }

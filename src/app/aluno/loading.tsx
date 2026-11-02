@@ -1,2 +1,10 @@
-import { Loading } from '@/components/ui';
-export default function Pending() { return <main id="conteudo" style={{ padding: 32 }}><Loading label="Verificando acesso…" /></main>; }
+import { SkeletonScreen } from '@/components/ui';
+import styles from '@/components/studio.module.css';
+
+export default function Pending() {
+  return (
+    <main id="conteudo" className={styles.studentMain} style={{ minHeight: '80vh' }}>
+      <SkeletonScreen />
+    </main>
+  );
+}

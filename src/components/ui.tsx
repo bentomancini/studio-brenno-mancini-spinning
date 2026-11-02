@@ -27,6 +27,39 @@ export function Notice({ children, tone = 'info', alert = false }: { children: R
 export function ErrorState({ error, retry }: { error: unknown; retry?: () => void }) { return <div className="error-state"><Notice tone="danger" alert>{errorMessage(error)}</Notice>{retry && <Button className="secondary" onClick={retry}><Icon name="refresh" />Tentar novamente</Button>}</div>; }
 export function Empty({ title, children, href, action }: { title: string; children?: ReactNode; href?: string; action?: string }) { return <div className="empty"><Icon name="calendar" size={28} /><h2>{title}</h2>{children && <p>{children}</p>}{href && <Link href={href} className="button secondary">{action ?? 'Ver agenda'}<Icon name="arrow" /></Link>}</div>; }
 export function Loading({ label = 'Carregando dados…' }: { label?: string }) { return <div className="loading" role="status"><span className="spinner" />{label}</div>; }
+export function Skeleton({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={`skeleton ${className}`} style={style} aria-hidden="true" />;
+}
+export function SkeletonScreen() {
+  return (
+    <div className="skeleton-screen" aria-busy="true" aria-label="Carregando...">
+      <div className="skeleton-header">
+        <Skeleton style={{ width: '40%', height: '32px', marginBottom: '10px' }} />
+        <Skeleton style={{ width: '65%', height: '18px' }} />
+      </div>
+      <div className="skeleton-grid">
+        <div className="skeleton-card">
+          <Skeleton style={{ width: '25%', height: '20px', marginBottom: '12px' }} />
+          <Skeleton style={{ width: '60%', height: '24px', marginBottom: '8px' }} />
+          <Skeleton style={{ width: '35%', height: '16px', marginBottom: '18px' }} />
+          <Skeleton style={{ width: '100%', height: '44px', borderRadius: '10px' }} />
+        </div>
+        <div className="skeleton-card">
+          <Skeleton style={{ width: '25%', height: '20px', marginBottom: '12px' }} />
+          <Skeleton style={{ width: '50%', height: '24px', marginBottom: '8px' }} />
+          <Skeleton style={{ width: '40%', height: '16px', marginBottom: '18px' }} />
+          <Skeleton style={{ width: '100%', height: '44px', borderRadius: '10px' }} />
+        </div>
+        <div className="skeleton-card">
+          <Skeleton style={{ width: '25%', height: '20px', marginBottom: '12px' }} />
+          <Skeleton style={{ width: '70%', height: '24px', marginBottom: '8px' }} />
+          <Skeleton style={{ width: '30%', height: '16px', marginBottom: '18px' }} />
+          <Skeleton style={{ width: '100%', height: '44px', borderRadius: '10px' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 export function Badge({ status }: { status: string }) { return <span className={`badge ${['confirmed', 'present', 'published'].includes(status) ? 'positive' : ['cancelled', 'absent'].includes(status) ? 'negative' : ''}`}><span aria-hidden="true">{['confirmed', 'present'].includes(status) ? '✓' : '•'}</span>{statusLabels[status] ?? status}</span>; }
 export function Field({ label, hint, error, id: suppliedId, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
   const autoId = useId(); const id = suppliedId ?? autoId;
