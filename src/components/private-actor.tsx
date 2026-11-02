@@ -25,9 +25,9 @@ export function PrivateActorProvider({ identity, children }: { identity: Session
     return () => { actor.dispose(); window.removeEventListener('focus', verify); window.removeEventListener('blur', actor.pause); window.removeEventListener('online', verify); window.removeEventListener('offline', actor.pause); document.removeEventListener('visibilitychange', visibility); };
   }, [actor]);
   return <Context.Provider value={actor}>
-    {status !== 'verified' && <section aria-label="Verificação da conta" style={{ padding: '12px 16px' }}>
-      <Notice tone={status === 'changed' ? 'warning' : 'info'}>
-        {status === 'checking' ? 'Verificando a conta desta página. As ações privadas estão temporariamente pausadas.' : status === 'changed' ? 'A conta mudou em outra aba. As ações deste contexto foram interrompidas; nenhuma intenção será repetida automaticamente.' : 'Não foi possível verificar a conta desta página. Consulte os dados, mas verifique a conta antes de enviar ações.'}
+    {status !== 'verified' && status !== 'checking' && <section aria-label="Verificação da conta" style={{ padding: '12px 16px' }}>
+      <Notice tone={status === 'changed' ? 'warning' : 'danger'}>
+        {status === 'changed' ? 'A conta mudou em outra aba. As ações deste contexto foram interrompidas; nenhuma intenção será repetida automaticamente.' : 'Não foi possível verificar a conta desta página. Consulte os dados, mas verifique a conta antes de enviar ações.'}
         {status === 'unverified' && <Button actorExempt className="secondary" onClick={() => void actor.verify()}>Verificar conta novamente</Button>}
         {status === 'changed' && <div className="actions"><a className="button secondary" href={loginHref(path)}>Entrar novamente</a><a className="button secondary" href={path}>Atualizar contexto</a></div>}
       </Notice>
