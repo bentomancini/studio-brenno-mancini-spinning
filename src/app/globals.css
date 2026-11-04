@@ -143,6 +143,7 @@ p.hint + .actions {
 .password input[aria-invalid=true] { border: 0; }
 
 .form-stack { display: grid; gap: 20px; }
+.form-stack > .actions { margin-top: 0; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .form-grid .span { grid-column: 1 / -1; }
 fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
@@ -153,6 +154,9 @@ input[type=checkbox], input[type=radio] { width: 20px; height: 20px; accent-colo
 /* Avisos e Feedbacks */
 .notice { display: flex; gap: 12px; padding: 16px 18px; border-radius: 10px; align-items: flex-start; background: var(--info-bg); color: var(--info); border: 1px solid rgba(100, 181, 246, 0.25); overflow-wrap: anywhere; font-size: 15px; line-height: 1.5; }
 .notice p:last-child { margin-bottom: 0; }
+.notice p { margin-top: 8px; }
+/* Feedback in normal flow needs separation; grid containers already own their gap. */
+:not(.form-stack):not(.operation-feedback):not(.error-state) > .notice + :not(dialog) { margin-top: 20px; }
 .notice.success { background: var(--success-bg); color: var(--success); border-color: rgba(76, 217, 136, 0.25); }
 .notice.warning { background: var(--warning-bg); color: var(--warning); border-color: rgba(245, 166, 35, 0.25); }
 .notice.danger { background: var(--danger-bg); color: var(--danger); border-color: rgba(255, 92, 92, 0.25); }
@@ -208,6 +212,9 @@ input[type=checkbox], input[type=radio] { width: 20px; height: 20px; accent-colo
 
 .page-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 32px; }
 .page-heading p { color: var(--secondary); max-width: 640px; margin-bottom: 0; font-size: 16px; }
+a + .page-heading { margin-top: 24px; }
+.check-label + article, .check-label + .empty { margin-top: 16px; }
+a:not(.button) > svg { margin-inline-start: 6px; }
 
 .pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-block: 28px; font-variant-numeric: tabular-nums; }
 .pager .button { padding-inline: 14px; }

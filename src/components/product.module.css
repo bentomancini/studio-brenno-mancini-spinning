@@ -46,7 +46,7 @@
 
 /* Detalhes da aula e painel de reserva */
 .detailGrid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 48px; margin-top: 28px; align-items: start; }
-.details { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border); margin: 24px 0; border-radius: 10px; }
+.details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; border-top: 1px solid var(--border); margin: 24px 0; border-radius: 10px; }
 .details div { padding: 18px 0; border-bottom: 1px solid var(--border); }
 .details dt { color: var(--secondary); font-size: 13px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .details dd { font-size: 18px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
@@ -90,6 +90,12 @@
 .catalogToolbar { display: flex; gap: 16px; justify-content: space-between; align-items: end; margin-bottom: 24px; flex-wrap: wrap; }
 .catalogToolbar :global(.field) { min-width: 220px; }
 .catalogRows { display: grid; gap: 12px; }
+.catalogRow + .catalogRow { margin-top: 12px; }
+.catalogRows > .catalogRow + .catalogRow { margin-top: 0; }
+.reservationGroup { margin-top: 20px; }
+.reservationGroup > p { margin: 0 0 12px; }
+.reservationRow :global(.actions) { margin-top: 0; }
+.scheduleTools > :global(.actions) { margin-top: 0; }
 .catalogRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
 .catalogRow h2 { font-size: 20px; margin-bottom: 4px; font-weight: 700; }
 .catalogRow p { color: var(--secondary); margin-bottom: 4px; overflow-wrap: anywhere; }
