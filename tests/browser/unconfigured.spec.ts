@@ -11,7 +11,10 @@ test('public UI, native validation, real 503, guards and responsive evidence wit
     for (const [path, name] of [['/', 'landing'], ['/entrar', 'login'], ['/cadastro', 'signup'], ['/recuperar-senha', 'recovery'], ['/redefinir-senha', 'reset']]) {
       await page.goto(path); await expect(page.locator('h1')).toBeVisible(); await page.evaluate(() => document.fonts.ready);
       expect(await page.evaluate(() => document.fonts.check('400 16px "Source Sans 3"'))).toBe(true);
-      if (path === '/') expect(await page.evaluate(() => document.fonts.check('700 16px "Barlow Condensed"'))).toBe(true);
+      if (path === '/') {
+        expect(await page.evaluate(() => document.fonts.check('700 16px "Barlow Condensed"'))).toBe(true);
+        if (size.width <= 360) await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Criar conta' })).toBeVisible();
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: info.outputPath(`${name}-${size.width}.png`), fullPage: true });
     }

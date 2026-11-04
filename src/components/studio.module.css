@@ -89,6 +89,8 @@
   .publicHeader { padding: 16px 20px; gap: 12px; }
   .publicNav { gap: 14px; }
   .publicNav :global(.button) { display: none; }
+  .landing .publicNav a:not(:global(.button)) { display: none; }
+  .landing .publicNav :global(.button) { display: inline-flex; padding-inline: 12px; }
   .hero { padding: 56px 20px 40px; }
   .hero h1 { font-size: 42px; line-height: 44px; margin-bottom: 20px; }
   .hero > p { font-size: 17px; line-height: 24px; max-width: 320px; margin-bottom: 24px; }
