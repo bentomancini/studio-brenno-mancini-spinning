@@ -196,6 +196,9 @@
   }
 
   .studentMain {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
     padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
     min-height: calc(100svh - 55px);
   }
@@ -209,6 +212,9 @@
   }
   .adminBar > button { display: flex; }
   .adminMain {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
     padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
   }
 }

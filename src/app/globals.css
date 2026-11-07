@@ -257,6 +257,23 @@ td .button { min-height: 40px; padding: 6px 14px; font-size: 14px; }
 
 /* Blocos de ação compartilham as bordas do conteúdo no mobile. */
 @media(max-width: 767px) {
+  main { overflow-wrap: anywhere; }
+  main > div { margin-inline: auto; }
+  main > *, .actions > *, .form-grid > *, .notice > div { min-width: 0; }
+  input[type=date], input[type=datetime-local] { min-inline-size: 0; max-width: 100%; }
+  .button { max-width: 100%; white-space: normal; }
+  .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 8px; }
+  .tabs a, .tabs button { min-width: 0; white-space: normal; justify-content: center; text-align: center; padding-inline: 8px; }
+  .table-wrap { overflow: visible; }
+  .table-wrap table { table-layout: fixed; }
+  .table-wrap th, .table-wrap td { padding: 12px 6px; overflow-wrap: anywhere; }
+  .table-wrap th:nth-child(1) { width: 32%; }
+  .table-wrap th:nth-child(2) { width: 28%; }
+  .table-wrap th:nth-child(3) { width: 40%; }
+  .table-wrap .badge { max-width: 100%; white-space: normal; padding: 4px; font-size: 12px; gap: 3px; }
+  .table-wrap .badge > [aria-hidden=true] { display: none; }
+  .table-wrap .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .table-wrap .button { width: 100%; padding-inline: 4px; min-height: 44px; }
   .page-heading { flex-direction: column; align-items: stretch; }
   .page-heading > .button, .page-heading > .actions { width: 100%; }
   .page-heading > .actions > .button { flex: 1 1 120px; }
