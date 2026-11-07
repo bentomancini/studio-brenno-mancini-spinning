@@ -136,8 +136,11 @@
   .sessionRow h3 { font-size: 18px; }
 
   .scheduleTools { gap: 14px; justify-content: space-between; }
-  .dateNavigation { width: 100%; flex-wrap: wrap; }
-  .dateNavigation :global(.field) { max-width: none; flex: 1; min-width: 140px; }
+  .dateNavigation { display: grid; width: 100%; min-width: 0; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 12px 8px; }
+  .dateNavigation :global(.field) { max-width: none; min-width: 0; }
+  .dateNavigation > :global(.button) { min-width: 0; padding-inline: 8px; }
+  .dateNavigation > :global(.button):last-child { grid-column: 1 / -1; justify-self: start; padding-inline: 16px; }
+  .dateNavigation input[type=date] { width: 100%; max-width: 100%; min-width: 0; padding-inline: 8px; }
 
   .details { margin-top: 16px; grid-template-columns: 1fr; }
   .details div { padding: 14px 0; }
