@@ -22,6 +22,18 @@ test('mobile date navigation keeps date, arrows and Today separated', async ({ p
       expect(c!.x - d!.x - d!.width).toBeGreaterThanOrEqual(11);
       expect(d!.y - b!.y - b!.height).toBeGreaterThanOrEqual(11);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const instructor = await page.getByLabel('Instrutor nesta semana').boundingBox();
+      const dayMode = await page.getByRole('button', { name: 'Dia', exact: true }).boundingBox();
+      const weekMode = await page.getByRole('button', { name: 'Semana', exact: true }).boundingBox();
+      expect(Math.abs(instructor!.x - b!.x)).toBeLessThan(1);
+      expect(Math.abs(instructor!.width - b!.width)).toBeLessThan(1);
+      expect(Math.abs(dayMode!.width - weekMode!.width)).toBeLessThan(1);
+      const days = page.locator('[aria-label="Dias da semana"] button');
+      const first = await days.first().boundingBox(); const last = await days.last().boundingBox();
+      expect(Math.abs(first!.x - b!.x)).toBeLessThan(1);
+      expect(Math.abs(last!.x + last!.width - b!.x - b!.width)).toBeLessThan(1);
+      expect(Math.abs(first!.y - last!.y)).toBeLessThan(3);
+      expect(last!.width).toBeGreaterThanOrEqual(24);
       const original = await date.inputValue();
       await next.click(); await expect(date).not.toHaveValue(original);
       await today.click(); await expect(date).toHaveValue(original);

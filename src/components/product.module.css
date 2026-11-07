@@ -119,11 +119,10 @@
   .welcome { padding-bottom: 24px; }
   .dashboardAside { padding: 0; }
   
-  /* Seletor semanal em carrossel horizontal suave no celular */
-  .week { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 14px; margin-bottom: 20px; gap: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .week::-webkit-scrollbar { display: none; }
-  .day { flex: 0 0 62px; min-height: 72px; padding: 10px 4px; scroll-snap-align: start; }
-  .day span:first-child { font-size: 11px; }
+  /* A semana inteira compartilha as mesmas bordas dos filtros. */
+  .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 0 14px; margin-bottom: 20px; gap: 4px; }
+  .day { min-width: 0; min-height: 72px; padding: 10px 2px; border-radius: 8px; }
+  .day span:first-child { font-size: 10px; letter-spacing: 0; }
   .day span:last-child { font-size: 18px; }
 
   /* Card da aula totalmente otimizado para celular */
@@ -135,7 +134,11 @@
   .sessionRow > :global(.button) { width: 100%; justify-content: center; min-height: 48px; }
   .sessionRow h3 { font-size: 18px; }
 
-  .scheduleTools { gap: 14px; justify-content: space-between; }
+  .scheduleTools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  .scheduleTools > :global(.field) { width: 100%; }
+  .scheduleTools > :global(.actions) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .catalogToolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  .catalogToolbar :global(.field) { min-width: 0; width: 100%; }
   .dateNavigation { display: grid; width: 100%; min-width: 0; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 12px; }
   .dateNavigation :global(.field) { grid-column: 1 / -1; grid-row: 1; max-width: 100%; min-width: 0; }
   .dateNavigation > :global(.button) { grid-row: 2; min-width: 0; padding-inline: 8px; }
@@ -155,11 +158,13 @@
   .reservationRow > :global(.actions) { justify-content: stretch; }
   .reservationRow > :global(.actions) > * { flex: 1; text-align: center; justify-content: center; }
 
-  .sectionHeading { flex-wrap: wrap; gap: 8px; }
-  .summaryStrip { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sectionHeading { flex-direction: column; align-items: stretch; gap: 12px; }
+  .sectionHeading > a { justify-content: center; }
+  .summaryStrip { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .summaryStrip > div { padding: 16px; }
   .summaryStrip strong { font-size: 28px; line-height: 32px; }
 
   .policyRow, .catalogRow { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
   .catalogRow :global(.actions) { justify-content: stretch; }
+  .catalogRow :global(.actions) > :global(.button) { flex: 1 1 120px; }
 }
