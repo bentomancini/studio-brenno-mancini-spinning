@@ -136,11 +136,13 @@
   .sessionRow h3 { font-size: 18px; }
 
   .scheduleTools { gap: 14px; justify-content: space-between; }
-  .dateNavigation { display: grid; width: 100%; min-width: 0; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 12px 8px; }
-  .dateNavigation :global(.field) { max-width: none; min-width: 0; }
-  .dateNavigation > :global(.button) { min-width: 0; padding-inline: 8px; }
-  .dateNavigation > :global(.button):last-child { grid-column: 1 / -1; justify-self: start; padding-inline: 16px; }
-  .dateNavigation input[type=date] { width: 100%; max-width: 100%; min-width: 0; padding-inline: 8px; }
+  .dateNavigation { display: grid; width: 100%; min-width: 0; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 12px; }
+  .dateNavigation :global(.field) { grid-column: 1 / -1; grid-row: 1; max-width: 100%; min-width: 0; }
+  .dateNavigation > :global(.button) { grid-row: 2; min-width: 0; padding-inline: 8px; }
+  .dateNavigation > :global(.button):first-child { grid-column: 1; }
+  .dateNavigation > :global(.button):nth-child(3) { grid-column: 3; }
+  .dateNavigation > :global(.button):last-child { grid-column: 2; justify-self: stretch; padding-inline: 16px; }
+  .dateNavigation input[type=date] { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; min-inline-size: 0; padding-inline: 12px; }
 
   .details { margin-top: 16px; grid-template-columns: 1fr; }
   .details div { padding: 14px 0; }
