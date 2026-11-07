@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title description">
+  <title id="title">Studio Brenno Mancini — Spinning</title>
+  <desc id="description">Agenda, bicicletas e reservas em um só lugar. Plataforma web para alunos e administração, com experiência mobile e desktop.</desc>
+  <rect width="1280" height="420" rx="24" fill="#141715"/>
+  <rect x="1" y="1" width="1278" height="418" rx="23" fill="none" stroke="#303932"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="72" font-size="16" letter-spacing="4" fill="#ff875f">STUDIO BRENNO MANCINI</text>
+    <text x="60" y="173" font-size="88" font-weight="700" letter-spacing="-4" fill="#f7f5f0">Seu ritmo.</text>
+    <text x="60" y="267" font-size="88" font-weight="700" letter-spacing="-4" fill="#ff875f">Sua próxima aula.</text>
+    <text x="64" y="326" font-size="23" fill="#c4c9c2">Agenda, bicicletas e reservas em um só lugar.</text>
+    <text x="64" y="378" font-size="14" letter-spacing="2" fill="#a4ada6">SPINNING · WEB APP · MOBILE + DESKTOP</text>
+  </g>
+  <g stroke="#3a453d" stroke-width="2">
+    <path d="M950 110v200M986 150v160M1022 90v220M1058 130v180M1094 65v245M1130 120v190M1166 160v150M934 310h260"/>
+  </g>
+  <path d="M1094 65v245" stroke="#ff875f" stroke-width="4"/>
+  <circle cx="1094" cy="65" r="7" fill="#ff875f"/>
+</svg>
