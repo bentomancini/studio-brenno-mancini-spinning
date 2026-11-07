@@ -63,7 +63,8 @@ export function SkeletonScreen() {
 export function Badge({ status }: { status: string }) { return <span className={`badge ${['confirmed', 'present', 'published'].includes(status) ? 'positive' : ['cancelled', 'absent'].includes(status) ? 'negative' : ''}`}><span aria-hidden="true">{['confirmed', 'present'].includes(status) ? '✓' : '•'}</span>{statusLabels[status] ?? status}</span>; }
 export function Field({ label, hint, error, id: suppliedId, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
   const autoId = useId(); const id = suppliedId ?? autoId;
-  return <div className="field"><label htmlFor={id}>{label}</label><input {...props} id={id} aria-invalid={!!error || undefined} aria-describedby={error || hint ? `${id}-help` : undefined} />{(error || hint) && <p id={`${id}-help`} className={error ? 'field-error' : 'hint'}>{error ?? hint}</p>}</div>;
+  const input = <input {...props} id={id} aria-invalid={!!error || undefined} aria-describedby={error || hint ? `${id}-help` : undefined} />;
+  return <div className="field"><label htmlFor={id}>{label}</label>{props.type === 'date' ? <div className="date-input-shell">{input}</div> : input}{(error || hint) && <p id={`${id}-help`} className={error ? 'field-error' : 'hint'}>{error ?? hint}</p>}</div>;
 }
 export function Password({ label = 'Senha', error, hint, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { label?: string; error?: string; hint?: string }) {
   const id = useId(); const [visible, setVisible] = useState(false);

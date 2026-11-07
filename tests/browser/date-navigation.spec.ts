@@ -15,7 +15,7 @@ test('mobile date navigation keeps date, arrows and Today separated', async ({ p
       const previous = page.getByRole('button', { name: 'Dia anterior', exact: true });
       const next = page.getByRole('button', { name: 'Próximo dia', exact: true });
       const today = page.getByRole('button', { name: 'Hoje', exact: true });
-      const [a, b, c, d] = await Promise.all([previous.boundingBox(), date.boundingBox(), next.boundingBox(), today.boundingBox()]);
+      const [a, b, c, d] = await Promise.all([previous.boundingBox(), page.locator('.date-input-shell').boundingBox(), next.boundingBox(), today.boundingBox()]);
       expect(a!.y - b!.y - b!.height).toBeGreaterThanOrEqual(11);
       expect(c!.y - b!.y - b!.height).toBeGreaterThanOrEqual(11);
       expect(d!.x - a!.x - a!.width).toBeGreaterThanOrEqual(11);

@@ -125,6 +125,7 @@ p.hint + .actions {
 
 /* Campos de Formulário Dark */
 .field { display: grid; gap: 6px; min-width: 0; }
+.date-input-shell { display: contents; }
 .field label, .label { font-size: 14px; line-height: 20px; font-weight: 600; display: block; color: var(--text); }
 .field input, .field select, .field textarea, .control { border: 1px solid var(--border); border-radius: 8px; min-height: 48px; padding: 10px 14px; background: var(--surface); color: var(--text); width: 100%; min-width: 0; font-size: 16px; transition: border-color var(--fast), box-shadow var(--fast); }
 .field input:focus, .field select:focus, .field textarea:focus, .control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 135, 95, 0.2); }
@@ -262,6 +263,12 @@ td .button { min-height: 40px; padding: 6px 14px; font-size: 14px; }
   main > div { margin-inline: auto; }
   main > *, .actions > *, .form-grid > *, .notice > div { min-width: 0; }
   input[type=date], input[type=datetime-local] { min-inline-size: 0; max-width: 100%; }
+  /* The outer box owns the border, independently of the native date editor's sizing. */
+  .field > .date-input-shell { display: flex; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .field > .date-input-shell:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 135, 95, 0.2); }
+  .field > .date-input-shell:has([aria-invalid=true]) { border: 2px solid var(--danger); }
+  .field .date-input-shell > input[type=date] { -webkit-appearance: none; appearance: none; flex: 1 1 0%; width: 0; min-width: 0; min-inline-size: 0; max-width: 100%; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+  .date-input-shell input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
   .button { max-width: 100%; white-space: normal; }
   .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 8px; }
   .tabs a, .tabs button { min-width: 0; white-space: normal; justify-content: center; text-align: center; padding-inline: 8px; }
