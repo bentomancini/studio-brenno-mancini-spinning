@@ -256,7 +256,8 @@ td .button { min-height: 40px; padding: 6px 14px; font-size: 14px; }
 .number { font-variant-numeric: tabular-nums; }
 
 /* Blocos de ação compartilham as bordas do conteúdo no mobile. */
-@media(max-width: 767px) {
+@media(max-width: 767px), (max-width: 1023px) and (pointer: coarse) {
+  html, body { max-width: 100%; overflow-x: clip; overscroll-behavior-x: none; }
   main { overflow-wrap: anywhere; }
   main > div { margin-inline: auto; }
   main > *, .actions > *, .form-grid > *, .notice > div { min-width: 0; }

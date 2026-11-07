@@ -85,7 +85,7 @@
 }
 
 /* Responsividade Mobile (Celulares até 767px) */
-@media(max-width: 767px) {
+@media(max-width: 767px), (max-width: 1023px) and (pointer: coarse) {
   .publicHeader { padding: 16px 20px; gap: 12px; }
   .publicNav { gap: 14px; }
   .publicNav :global(.button) { display: none; }
