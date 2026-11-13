@@ -532,3 +532,105 @@ test('cancelled history RPC filters before pagination and isolates the authentic
   await db.session(actor,'revoke');
   await expect(readCancelled(actor)).rejects.toMatchObject({code:'PT401'});
 });
+
+describe('weekly session-series RPC (native PostgreSQL)',()=> {
+  const bike = async () => (await db.command(admin,'admin.bikes.create',{label:`B-${key()}`.slice(0,40)})).id as string;
+  const input = (bikeIds:string[], overrides:Json={}) => ({
+    title:'TEST weekly',instructorId:teacher,startDate:'2035-01-01',startTime:'07:00',
+    endDate:'2035-01-01',endTime:'08:00',untilDate:'2035-01-15',
+    timezone:'America/Sao_Paulo',capacity:bikeIds.length,bikeMode:'none',bikeIds,status:'published',...overrides,
+  });
+  const create = (actor:Actor, body:unknown, opKey=key(), expected=actor.userId) => db.as(actor,async c =>
+    (await c.query('select public.studio_create_session_series($1::jsonb,$2,$3) result',[JSON.stringify(body),opKey,expected])).rows[0].result as Json);
+  test('inclusive end date, local weekday/time, persisted linkage and individual cancellation',async()=> {
+    await configure(testPolicies);
+    const b=await bike();const result=await create(admin,input([b]));
+    expect(result).toMatchObject({occurrenceCount:3});
+    const rows=await db.rows<{id:string;start:string;series_id:string;status:string}>(
+      `select id,starts_at::text start,series_id,status from app_private.class_sessions where series_id=
+       (select series_id from app_private.class_sessions where id=$1) order by starts_at`,[result.id]);
+    expect(rows).toHaveLength(3);
+    expect(rows[0].id).toBe(result.id);
+    expect(rows.map(r=>new Date(r.start).toISOString())).toEqual([
+      '2035-01-01T10:00:00.000Z','2035-01-08T10:00:00.000Z','2035-01-15T10:00:00.000Z']);
+    expect(new Set(rows.map(r=>r.series_id)).size).toBe(1);
+    expect(result.firstStartsAt).toBe('2035-01-01T10:00:00+00:00');
+    const audit=await db.rows<{action:string}>(`select action from app_private.audit_events
+      where (action='admin.sessions.create' and resource_id=any($1::uuid[]))
+        or (action='admin.session_series.create' and resource_id=$2)`,[rows.map(r=>r.id),rows[0].series_id]);
+    expect(audit.filter(event=>event.action==='admin.sessions.create')).toHaveLength(3);
+    expect(audit.filter(event=>event.action==='admin.session_series.create')).toHaveLength(1);
+    await db.command(admin,'admin.sessions.archive',{},rows[1].id,null,1);
+    expect((await db.read(admin,'admin.sessions',rows[1].id)).sessionStatus).toBe('cancelled');
+    expect((await db.read(admin,'admin.sessions',rows[0].id)).sessionStatus).toBe('published');
+    expect((await db.read(admin,'admin.sessions',rows[2].id)).sessionStatus).toBe('published');
+  });
+  test('same key concurrently creates once; changed body conflicts; actor binding/RBAC before writes',async()=> {
+    const b=await bike();const body=input([b],{startDate:'2035-02-05',endDate:'2035-02-05',untilDate:'2035-02-19'});
+    const opKey=key();const results=await Promise.all(Array.from({length:4},()=>create(admin,body,opKey)));
+    expect(results.every(r=>JSON.stringify(r)===JSON.stringify(results[0]))).toBe(true);
+    expect((await db.rows<{n:string}>('select count(*) n from app_private.class_sessions where series_id=(select id from app_private.session_series where actor_id=$1 and operation_key=$2)',[admin.userId,opKey]))[0].n).toBe('3');
+    await expect(create(admin,{...body,title:'another'},opKey)).rejects.toMatchObject({code:'PT409',message:'IDEMPOTENCY_CONFLICT'});
+    const another=key();await expect(create(admin,body,another,randomUUID())).rejects.toMatchObject({code:'PT409',message:'ACTOR_CHANGED'});
+    const student=await db.actor();await expect(create(student,body,another)).rejects.toMatchObject({code:'PT403'});
+    expect(await db.rows('select id from app_private.session_series where operation_key=$1',[another])).toHaveLength(0);
+    await expect(db.as(null,c=>c.query('select public.studio_create_session_series($1::jsonb,$2,$3)',[JSON.stringify(body),key(),admin.userId]),'anon')).rejects.toMatchObject({code:'42501'});
+  });
+  test('one late bike overlap or policy failure rolls back every occurrence, audit and operation key',async()=> {
+    const b=await bike();const body=input([b],{startDate:'2035-03-05',endDate:'2035-03-05',untilDate:'2035-03-19'});
+    const existing=await db.command(admin,'admin.sessions.create',{
+      title:'TEST blocker',instructorId:teacher,startsAt:'2035-03-19T10:00:00Z',endsAt:'2035-03-19T11:00:00Z',
+      timezone:'America/Sao_Paulo',capacity:1,bikeMode:'none',bikeIds:[b],status:'published',
+    });
+    const opKey=key();
+    await expect(create(admin,body,opKey)).rejects.toMatchObject({code:'PT409',message:'BIKE_SCHEDULE_OVERLAP'});
+    expect(await db.rows('select id from app_private.session_series where actor_id=$1 and operation_key=$2',[admin.userId,opKey])).toHaveLength(0);
+    expect(await db.rows("select id from app_private.class_sessions where title='TEST weekly' and starts_at >= '2035-03-05' and starts_at < '2035-03-20'")).toHaveLength(0);
+    await db.command(admin,'admin.sessions.archive',{},existing.id as string,null,1);
+    expect((await create(admin,body,opKey)).occurrenceCount).toBe(3);
+    await configure({...testPolicies,bookingWindow:{mode:'unconfigured'}});
+    try {await expect(create(admin,input([await bike()],{startDate:'2035-04-02',endDate:'2035-04-02',untilDate:'2035-04-09'}))).rejects.toMatchObject({message:'POLICY_UNCONFIGURED'});}
+    finally {await configure(testPolicies);}
+  });
+  test('zone conversion across DST preserves local time; gaps and folds reject the entire series',async()=> {
+    const b=await bike();
+    const series=input([b],{startDate:'2035-03-04',endDate:'2035-03-04',untilDate:'2035-03-18',timezone:'America/New_York'});
+    const result=await create(admin,series);
+    const rows=await db.rows<{starts_at:string}>(`select starts_at from app_private.class_sessions where series_id=(select series_id from app_private.class_sessions where id=$1) order by starts_at`,[result.id]);
+    expect(rows.map(r=>new Date(r.starts_at).toISOString())).toEqual(['2035-03-04T12:00:00.000Z','2035-03-11T11:00:00.000Z','2035-03-18T11:00:00.000Z']);
+    const gap=input([await bike()],{startDate:'2035-03-04',endDate:'2035-03-04',untilDate:'2035-03-11',startTime:'02:30',endTime:'03:30',timezone:'America/New_York'});
+    await expect(create(admin,gap)).rejects.toMatchObject({code:'PT422',message:'AMBIGUOUS_LOCAL_TIME'});
+    const fold=input([await bike()],{startDate:'2035-10-28',endDate:'2035-10-28',untilDate:'2035-11-04',startTime:'01:30',endTime:'02:30',timezone:'America/New_York'});
+    await expect(create(admin,fold)).rejects.toMatchObject({code:'PT422',message:'AMBIGUOUS_LOCAL_TIME'});
+  });
+  test('endDate is relative to each start date, 52 cap and SQL rejects malformed direct RPC bodies',async()=> {
+    const b=await bike();const body=input([b],{startDate:'2035-06-04',endDate:'2035-06-05',endTime:'00:30',untilDate:'2035-06-11'});
+    const result=await create(admin,body);
+    const rows=await db.rows<{ends_at:string}>(`select ends_at from app_private.class_sessions where series_id=(select series_id from app_private.class_sessions where id=$1) order by starts_at`,[result.id]);
+    expect(rows.map(r=>new Date(r.ends_at).toISOString())).toEqual(['2035-06-05T03:30:00.000Z','2035-06-12T03:30:00.000Z']);
+    for(const invalid of [{...body,untilDate:'2037-06-11'},{...body,startTime:'25:00'},{...body,status:'cancelled'},{...body,admin:true}]) {
+      await expect(create(admin,invalid)).rejects.toMatchObject({code:'PT422'});
+    }
+  });
+  test('competing series with a shared bike cannot both publish; the loser leaves no partial weeks',async()=> {
+    const b=await bike();const body=input([b],{startDate:'2035-07-02',endDate:'2035-07-02',untilDate:'2035-07-16'});
+    const a=key(),second=key();
+    const outcomes=await Promise.allSettled([create(admin,body,a),create(admin,body,second)]);
+    expect(outcomes.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+    expect(outcomes.filter(r=>r.status==='rejected')).toHaveLength(1);
+    expect((outcomes.find(r=>r.status==='rejected') as PromiseRejectedResult).reason).toMatchObject({code:'PT409',message:'BIKE_SCHEDULE_OVERLAP'});
+    const operations=await db.rows<{operation_key:string}>('select operation_key from app_private.session_series where actor_id=$1 and operation_key in ($2,$3)',[admin.userId,a,second]);
+    expect(operations).toHaveLength(1);
+    const sessions=await db.rows('select id from app_private.class_sessions where series_id=(select id from app_private.session_series where actor_id=$1 and operation_key=$2)',[admin.userId,operations[0].operation_key]);
+    expect(sessions).toHaveLength(3);
+    await expect(db.as(admin,c=>c.query('select * from app_private.session_series'))).rejects.toMatchObject({code:'42501'});
+  });
+  test('exactly 52 weekly occurrences are accepted but a 53rd is rejected',async()=> {
+    const b=await bike();const startDate='2036-01-07';
+    const untilDate=new Date(Date.parse(`${startDate}T00:00:00Z`)+51*7*86400000).toISOString().slice(0,10);
+    const body=input([b],{startDate,endDate:startDate,untilDate,status:'draft'});
+    const created=await create(admin,body);
+    expect(created.occurrenceCount).toBe(52);
+    await expect(create(admin,{...body,untilDate:new Date(Date.parse(`${untilDate}T00:00:00Z`)+7*86400000).toISOString().slice(0,10)})).rejects.toMatchObject({code:'PT422'});
+  });
+});

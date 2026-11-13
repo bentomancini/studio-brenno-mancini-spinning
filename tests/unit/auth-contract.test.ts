@@ -17,6 +17,7 @@ import { GET as callback } from '@/app/auth/callback/route';
 import { POST as confirmForm } from '@/app/auth/confirm/route';
 import { internalReturnTo, version } from '@/lib/server/http';
 import { databaseError } from '@/lib/server/errors';
+import { sessionSeriesCreate } from '@/contracts';
 
 const userId=randomUUID(); const sessionId=randomUUID();
 const identity={userId,studentId:randomUUID(),role:'student'};
@@ -235,6 +236,28 @@ describe('BFF auth/authorization and no token disclosure',()=> {
   test('HTML confirmation rejection remains an HTTP error and never grants recovery on foreign Origin',async()=> {
     const response = await confirmForm(new Request('http://localhost:3000/auth/confirm', { method: 'POST', headers: { origin: 'https://foreign.example', 'content-type': 'application/x-www-form-urlencoded' }, body: 'tokenHash=controlled-test-token-hash&type=recovery' }));
     expect(response.status).toBe(403); expect(response.headers.get('content-type')).toContain('text/html'); expect(fakes.recovery.auth.verifyOtp).not.toHaveBeenCalled(); expect(fakes.admin.rpc).not.toHaveBeenCalled();
+  });
+  test('weekly series POST has a strict finite contract and forwards actor/key to its one RPC',async()=> {
+    const input={title:'TEST weekly',instructorId:randomUUID(),startDate:'2035-01-01',startTime:'07:00',
+      endDate:'2035-01-01',endTime:'08:00',untilDate:'2035-01-15',timezone:'America/Sao_Paulo',
+      capacity:1,bikeMode:'none',bikeIds:[randomUUID()],status:'draft'};
+    fakes.normal.rpc.mockImplementation(async(name,args)=>({data:name==='studio_session'?{...identity,role:'admin'}:
+      name==='studio_create_session_series'?{id:randomUUID(),occurrenceCount:3,firstStartsAt:'2035-01-01T10:00:00Z',lastStartsAt:'2035-01-15T10:00:00Z'}:args,error:null}));
+    expect(sessionSeriesCreate.safeParse(input).success).toBe(true);
+    for(const invalid of [
+      {...input,untilDate:'2036-01-01'}, {...input,startTime:'7:00'}, {...input,untilDate:'2034-12-31'},
+      {...input,endDate:'2034-12-31'}, {...input,status:'cancelled'}, {...input,unexpected:true},
+    ]) expect(sessionSeriesCreate.safeParse(invalid).success).toBe(false);
+    expect((await api('admin/session-series','POST',input)).status).toBe(422);
+    expect((await api('admin/session-series','POST',input,{'idempotency-key':'series-test-key','x-expected-actor':randomUUID()})).status).toBe(409);
+    expect(fakes.normal.rpc.mock.calls.some(([name])=>name==='studio_create_session_series')).toBe(false);
+    const response=await api('admin/session-series','POST',input,{'idempotency-key':'series-test-key'});
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({occurrenceCount:3,id:expect.any(String)});
+    expect(fakes.normal.rpc).toHaveBeenCalledWith('studio_create_session_series',{
+      p_body:input,p_key:'series-test-key',p_expected_actor:userId,
+    });
+    expect((await api('admin/session-series','POST',{...input,status:'completed'},{'idempotency-key':'series-new-key'})).status).toBe(422);
   });
   test('HTML confirmation errors never log provider details or recovery tokens',async()=> {
     const log = vi.spyOn(console,'error').mockImplementation(()=>{});

@@ -31,6 +31,19 @@ const sessionFields = {
 };
 export const sessionCreate = z.strictObject(sessionFields).refine(v => Date.parse(v.endsAt) > Date.parse(v.startsAt), { path: ['endsAt'], message: 'Deve ser posterior ao início.' });
 export const sessionUpdate = z.strictObject(sessionFields).partial().refine(v => Object.keys(v).length > 0);
+const calendarDate = z.iso.date();
+const clockTime = z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/);
+export const sessionSeriesCreate = z.strictObject({
+  title: sessionFields.title, instructorId: uuid,
+  startDate: calendarDate, startTime: clockTime,
+  endDate: calendarDate, endTime: clockTime, untilDate: calendarDate,
+  timezone: sessionFields.timezone, capacity: sessionFields.capacity,
+  bikeMode: sessionFields.bikeMode, bikeIds: sessionFields.bikeIds,
+  status: z.enum(['draft', 'published']),
+}).refine(v => v.endDate >= v.startDate, { path: ['endDate'], message: 'O fim deve ser na data inicial ou posterior.' })
+  .refine(v => v.untilDate >= v.startDate, { path: ['untilDate'], message: 'A data final deve incluir a primeira aula.' })
+  .refine(v => Math.floor((Date.parse(`${v.untilDate}T00:00:00Z`) - Date.parse(`${v.startDate}T00:00:00Z`)) / 604800000) < 52,
+    { path: ['untilDate'], message: 'O limite técnico é de 52 ocorrências.' });
 const unconfigured = z.strictObject({ mode: z.literal('unconfigured') });
 const unrestricted = z.strictObject({ mode: z.literal('unrestricted') });
 const minutes = z.number().int().min(0).max(5256000);
@@ -53,5 +66,6 @@ export const operationKey = z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/)
 export type SessionIdentity = { userId: string; role: 'student' | 'admin'; studentId: string | null };
 export type ReservationDTO = { id: string; sessionId: string; studentId: string; bikeId: string | null; status: 'confirmed' | 'cancelled'; createdAt: string; cancelledAt: string | null; version: number; attendance: 'unmarked' | 'present' | 'absent' };
 export type SessionDTO = { id: string; title: string; instructor: { id: string; name: string }; startsAt: string; endsAt: string; timezone: string; durationMinutes: number; sessionStatus: 'draft' | 'published' | 'cancelled' | 'completed'; capacity: number; availability: number; bikeMode: 'none' | 'required'; myReservation: ReservationDTO | null; allowedActions: { reserve: boolean; reasonCode: string | null }; asOf: string; version: number };
+export type SessionSeriesCreateDTO = { id: string; occurrenceCount: number; firstStartsAt: string; lastStartsAt: string };
 export type OperationResult = { outcome: 'applied' | 'rejected'; reference: { reservationId: string; sessionId: string } | null; resource?: ReservationDTO; error?: { code: string }; replayed?: boolean; currentResource?: ReservationDTO | null };
 export type OperationObservation = { state: 'not_observed' } | { state: 'observed'; operation: OperationResult; currentResource: ReservationDTO | null };

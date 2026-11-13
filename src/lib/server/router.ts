@@ -101,6 +101,11 @@ export async function dispatch(request: Request, path: string[]): Promise<unknow
   }
   if (admin) {
     const resource = path[1];
+    if (resource === 'session-series' && path.length === 2 && method === 'POST') {
+      return rpc(client, 'studio_create_session_series', {
+        p_body: await body(request, C.sessionSeriesCreate), p_key: key(request), p_expected_actor: boundActor,
+      }, true);
+    }
     if (resource === 'settings' && path.length === 2) {
       if (method === 'GET') return read('admin.settings');
       if (method === 'PATCH') return command('admin.settings.update', await body(request, C.settingsUpdate), null, version(request));

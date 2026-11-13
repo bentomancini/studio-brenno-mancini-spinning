@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { bikeCreate, instructorCreate, policies, sessionCreate, sessionUpdate, studentCreate, type SessionDTO } from '@/contracts';
 import { RequestError } from '@/lib/ui/api';
 import { allPages, revalidateStudio, useResource, useUnsavedChanges } from '@/lib/ui/hooks';
@@ -78,7 +78,11 @@ function CatalogEditor({ kind, item, onClose, onSaved }: { kind: CatalogKind; it
 }
 
 function deviceDateTime(value: string) { const date = new Date(value); return `${localDate(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
-export function SessionEditor({ session, inventory, onClose, onSaved }: { session?: SessionDTO; inventory?: BikeAvailability; onClose: () => void; onSaved: (id: string) => void }) {
+type SessionEditorProps = { session?: SessionDTO; inventory?: BikeAvailability; onClose: () => void; onSaved: (id: string) => void };
+export function SessionEditor(props: SessionEditorProps) {
+  return props.session ? <ExistingSessionEditor {...props} /> : <CreateSessionEditor onClose={props.onClose} onSaved={props.onSaved} />;
+}
+function ExistingSessionEditor({ session, inventory, onClose, onSaved }: SessionEditorProps) {
   const privateApi = usePrivateApi();
   const instructors = useResource<Instructor[]>('admin/instructors', allPages); const bikes = useResource<Bike[]>('admin/bikes', allPages);
   // The draft and its version are one snapshot. Background refresh must never
@@ -101,6 +105,121 @@ export function SessionEditor({ session, inventory, onClose, onSaved }: { sessio
   }
   const uncertain = error instanceof RequestError && error.ambiguous;
   return <Modal title={session ? 'Editar aula' : 'Criar aula'} onClose={onClose} busy={busy}><form className="form-stack" onSubmit={submit}><Field label="Título" required maxLength={160} value={values.title} onChange={set('title')} error={errors.title} /><div className="field"><label htmlFor="session-instructor">Instrutor</label><select id="session-instructor" required value={values.instructorId} onChange={set('instructorId')} aria-invalid={!!errors.instructorId || undefined} aria-describedby={errors.instructorId ? 'instructor-error' : undefined}><option value="">Selecione um instrutor ativo</option>{instructors.data?.filter(item => !item.archivedAt || item.id === values.instructorId).map(item => <option key={item.id} value={item.id}>{item.name}{item.archivedAt ? ' (arquivado)' : ''}</option>)}</select>{errors.instructorId && <p className="field-error" id="instructor-error">{errors.instructorId}</p>}</div>{instructors.loading && <Loading label="Carregando instrutores…" />}{instructors.error !== undefined && <ErrorState error={instructors.error} retry={instructors.reload} />}<div className="form-grid"><Field label="Início" type="datetime-local" required value={values.startsAt} onChange={set('startsAt')} error={errors.startsAt} /><Field label="Fim" type="datetime-local" required value={values.endsAt} onChange={set('endsAt')} error={errors.endsAt} /></div><div className="form-grid"><Field label="Capacidade" required type="number" min={1} max={10000} step={1} value={values.capacity} onChange={set('capacity')} error={errors.capacity} /><div className="field"><label htmlFor="bike-mode">Escolha de bicicleta</label><select id="bike-mode" required value={values.bikeMode} onChange={set('bikeMode')}><option value="">Selecione</option><option value="none">Sem escolha na reserva</option><option value="required">Escolha obrigatória</option></select></div></div><fieldset><legend>Bicicletas do inventário desta aula</legend><p className="hint">A publicação exige inventário suficiente mesmo sem escolha de bicicleta. Não retire itens vinculados a reservas históricas.</p>{bikes.loading ? <Loading label="Consultando inventário…" /> : bikes.error !== undefined ? <ErrorState error={bikes.error} retry={bikes.reload} /> : <div className={styles.inventory}>{bikes.data?.filter(item => !item.archivedAt || bikeIds.includes(item.id)).map(bike => <label key={bike.id} className="check-label"><input type="checkbox" checked={bikeIds.includes(bike.id)} onChange={event => setBikeIds(event.target.checked ? [...bikeIds, bike.id] : bikeIds.filter(id => id !== bike.id))} />{bike.label}{bike.archivedAt ? ' (arquivada)' : ''}</label>)}{!bikes.data?.length && <p>Nenhuma bicicleta cadastrada. <Link href="/admin/bicicletas">Cadastrar inventário</Link></p>}</div>}{errors.bikeIds && <p className="field-error">{errors.bikeIds}</p>}</fieldset><div className="field"><label htmlFor="session-status">Estado da aula</label><select id="session-status" required value={values.status} onChange={set('status')}><option value="draft" disabled={session?.sessionStatus === 'published'}>Rascunho</option><option value="published">Publicada</option>{session?.sessionStatus === 'published' && <option value="completed">Concluída</option>}</select><p className="hint">Publicar depende das políticas e do inventário. Aulas concluídas não podem ser reabertas.</p></div>{error !== undefined && <ErrorState error={error} />}{uncertain && <Notice tone="warning">O resultado é incerto. Confira a agenda antes de reenviar para evitar duplicar uma aula.</Notice>}<div className="actions"><Button type="submit" busy={busy} disabled={uncertain || instructors.loading || bikes.loading || !!instructors.error || !!bikes.error || error instanceof RequestError && error.code === 'VERSION_CONFLICT'}>Salvar aula</Button><Button className="secondary" disabled={busy} onClick={() => { if (uncertain) revalidateStudio(); onClose(); }}>{uncertain ? 'Conferir agenda' : 'Descartar e fechar'}</Button></div></form></Modal>;
+}
+// Native date/time values are wall-clock values, not instants. Resolve them in
+// the class timezone, independently of the administrator's device timezone.
+function calendarDay(value: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const stamp = Date.UTC(year, month - 1, day);
+  const parsed = new Date(stamp);
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day ? stamp / 86400000 : null;
+}
+function zonedInstant(date: string, time: string, zone: string): { iso?: string; error?: string } {
+  const day = calendarDay(date);
+  if (day === null || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return { error: 'Informe uma data e um horário válidos.' };
+  const wall = day * 86400000 + Number(time.slice(0, 2)) * 3600000 + Number(time.slice(3)) * 60000;
+  try {
+    const format = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const parts = (timestamp: number) => Object.fromEntries(format.formatToParts(timestamp).map(part => [part.type, part.value]));
+    const wallAt = (timestamp: number) => {
+      const p = parts(timestamp);
+      return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+    };
+    const offsets = new Set<number>();
+    for (let hours = -36; hours <= 36; hours += 6) {
+      const candidate = wall + hours * 3600000;
+      const p = parts(candidate);
+      offsets.add(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute)) - candidate);
+    }
+    const matches = [...offsets].map(offset => wall - offset).filter(candidate => wallAt(candidate) === `${date}T${time}`);
+    if (!matches.length) return { error: 'Este horário não existe no fuso da aula por causa da mudança de horário. Escolha outro.' };
+    if (matches.length > 1) return { error: 'Este horário ocorre duas vezes no fuso da aula. Escolha outro horário.' };
+    return { iso: new Date(matches[0]).toISOString() };
+  } catch { return { error: 'O fuso horário da aula não é válido.' }; }
+}
+const classTimezone = 'America/Sao_Paulo';
+const weekdayNames = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+type SeriesResponse = { id: string; occurrenceCount: number; firstStartsAt: string; lastStartsAt: string };
+function CreateSessionEditor({ onClose, onSaved }: Pick<SessionEditorProps, 'onClose' | 'onSaved'>) {
+  const privateApi = usePrivateApi();
+  const instructors = useResource<Instructor[]>('admin/instructors', allPages);
+  const bikes = useResource<Bike[]>('admin/bikes', allPages);
+  const [values, setValues] = useState({ title: '', instructorId: '', startDate: '', startTime: '', endDate: '', endTime: '', untilDate: '', capacity: '', bikeMode: '', status: 'draft' });
+  const [repeat, setRepeat] = useState(false);
+  const [bikeIds, setBikeIds] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const seriesIntent = useRef<{ key: string; body: string } | null>(null);
+  const [error, setError] = useState<unknown>();
+  const [uncertain, setUncertain] = useState(false);
+  const set = (key: keyof typeof values) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setValues(previous => ({ ...previous, [key]: event.target.value }));
+    setErrors(previous => ({ ...previous, [key]: '' }));
+  };
+  async function sendSeries(intent: { key: string; body: string }) {
+    if (inFlight.current) return;
+    inFlight.current = true; setBusy(true); setError(undefined);
+    try {
+      // Retry must use the original serialized body and key, never the current draft.
+      const result = await privateApi.request<SeriesResponse>('admin/session-series', { method: 'POST', body: JSON.parse(intent.body), key: intent.key });
+      revalidateStudio(); onSaved(result.id);
+    } catch (caught) {
+      setError(caught);
+      setUncertain(caught instanceof RequestError && caught.ambiguous);
+    } finally { inFlight.current = false; setBusy(false); }
+  }
+  const startDay = calendarDay(values.startDate);
+  const untilDay = calendarDay(values.untilDate);
+  const count = startDay !== null && untilDay !== null && untilDay >= startDay ? Math.floor((untilDay - startDay) / 7) + 1 : null;
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inFlight.current || uncertain) return;
+    const failures: Record<string, string> = {};
+    const start = zonedInstant(values.startDate, values.startTime, classTimezone);
+    const end = zonedInstant(values.endDate, values.endTime, classTimezone);
+    if (start.error) failures[!values.startDate || calendarDay(values.startDate) === null ? 'startDate' : 'startTime'] = start.error;
+    if (end.error) failures[!values.endDate || calendarDay(values.endDate) === null ? 'endDate' : 'endTime'] = end.error;
+    if (start.iso && end.iso && Date.parse(end.iso) <= Date.parse(start.iso)) failures.endTime = 'O fim precisa ser posterior ao início.';
+    if (repeat) {
+      if (untilDay === null) failures.untilDate = 'Informe uma data final válida.';
+      else if (startDay !== null && untilDay < startDay) failures.untilDate = 'A data final deve ser igual ou posterior à primeira aula.';
+      else if (count !== null && count > 52) failures.untilDate = 'Escolha uma data final que gere no máximo 52 aulas semanais.';
+    }
+    const base = { title: values.title, instructorId: values.instructorId, timezone: classTimezone, capacity: values.capacity === '' ? NaN : Number(values.capacity), bikeMode: values.bikeMode, bikeIds, status: values.status };
+    const single = { ...base, startsAt: start.iso ?? '', endsAt: end.iso ?? '' };
+    const parsed = sessionCreate.safeParse(single);
+    if (!parsed.success) parsed.error.issues.forEach(issue => { const key = String(issue.path[0]); if (!failures[key]) failures[key] = 'Confira este campo e seus limites.'; });
+    setErrors(failures);
+    if (Object.keys(failures).length || !parsed.success || instructors.loading || bikes.loading || !!instructors.error || !!bikes.error || !instructors.data?.length) { focusInvalid(event.currentTarget); return; }
+    const body = repeat ? { ...base, title: parsed.data.title, startDate: values.startDate, startTime: values.startTime, endDate: values.endDate, endTime: values.endTime, untilDate: values.untilDate } : parsed.data;
+    if (repeat) {
+      const serialized = JSON.stringify(body);
+      if (!seriesIntent.current || seriesIntent.current.body !== serialized) seriesIntent.current = { key: crypto.randomUUID(), body: serialized };
+      await sendSeries(seriesIntent.current);
+      return;
+    }
+    inFlight.current = true; setBusy(true); setError(undefined);
+    try {
+      const result = await privateApi.request<SessionDTO>('admin/sessions', { method: 'POST', body });
+      revalidateStudio(); onSaved(result.id);
+    } catch (caught) { setError(caught); if (caught instanceof RequestError && caught.ambiguous) setUncertain(true); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+  const dependenciesUnavailable = instructors.loading || bikes.loading || !!instructors.error || !!bikes.error || !instructors.data?.some(item => !item.archivedAt);
+  return <Modal title="Criar aula" onClose={onClose} busy={busy}><form className="form-stack" onSubmit={submit}>
+    <Field label="Título" required maxLength={160} value={values.title} onChange={set('title')} error={errors.title} disabled={uncertain} />
+    <div className="field"><label htmlFor="new-session-instructor">Instrutor</label><select id="new-session-instructor" required value={values.instructorId} onChange={set('instructorId')} disabled={uncertain} aria-invalid={!!errors.instructorId || undefined} aria-describedby={errors.instructorId ? 'new-instructor-error' : undefined}><option value="">Selecione um instrutor ativo</option>{instructors.data?.filter(item => !item.archivedAt).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{errors.instructorId && <p id="new-instructor-error" className="field-error">{errors.instructorId}</p>}</div>
+    {instructors.loading && <Loading label="Carregando instrutores…" />}{instructors.error !== undefined && <ErrorState error={instructors.error} retry={instructors.reload} />}{!instructors.loading && instructors.error === undefined && instructors.data && !instructors.data.some(item => !item.archivedAt) && <Empty title="Nenhum instrutor ativo.">Cadastre ou reative um instrutor antes de criar uma aula.</Empty>}
+    <fieldset className="session-dates"><legend>Quando acontece</legend><div className="session-time-groups"><div className="session-time-group"><h3>Datas</h3><div className="form-grid"><Field label="Data de início" type="date" required value={values.startDate} onChange={set('startDate')} error={errors.startDate} disabled={uncertain} /><Field label="Data de fim" type="date" required value={values.endDate} onChange={set('endDate')} error={errors.endDate} disabled={uncertain} /></div></div><div className="session-time-group"><h3>Horários</h3><div className="form-grid"><Field label="Horário de início" type="time" required step={60} value={values.startTime} onChange={set('startTime')} error={errors.startTime} disabled={uncertain} /><Field label="Horário de fim" type="time" required step={60} value={values.endTime} onChange={set('endTime')} error={errors.endTime} disabled={uncertain} /></div></div></div><p className="hint">Horários no fuso da aula: {classTimezone}. A data de fim pode ser o dia seguinte.</p></fieldset>
+    <div className="session-repeat"><label className="check-label"><input type="checkbox" checked={repeat} disabled={uncertain} onChange={event => { setRepeat(event.target.checked); setErrors(previous => ({ ...previous, untilDate: '' })); }} />Repetir toda semana</label>{repeat && <><Field label="Repetir até" type="date" required min={values.startDate || undefined} value={values.untilDate} onChange={set('untilDate')} error={errors.untilDate} disabled={uncertain} hint="Data final inclusiva. No máximo 52 aulas; cada ocorrência pode ser editada ou cancelada individualmente." />{startDay !== null && values.startTime && <p className="hint" role="status">Toda {weekdayNames[new Date(startDay * 86400000).getUTCDay()]} às {values.startTime}{values.endTime ? `–${values.endTime}${values.endDate && values.endDate !== values.startDate ? ' (dia seguinte)' : ''}` : ''} ({classTimezone}){count !== null && count <= 52 ? ` · ${count} ${count === 1 ? 'aula' : 'aulas'}` : ''}.</p>}</>}</div>
+    <div className="form-grid"><Field label="Capacidade" required type="number" min={1} max={10000} step={1} value={values.capacity} onChange={set('capacity')} error={errors.capacity} disabled={uncertain} /><div className="field"><label htmlFor="new-bike-mode">Escolha de bicicleta</label><select id="new-bike-mode" required value={values.bikeMode} onChange={set('bikeMode')} disabled={uncertain} aria-invalid={!!errors.bikeMode || undefined} aria-describedby={errors.bikeMode ? 'new-bike-mode-error' : undefined}><option value="">Selecione</option><option value="none">Sem escolha na reserva</option><option value="required">Escolha obrigatória</option></select>{errors.bikeMode && <p id="new-bike-mode-error" className="field-error">{errors.bikeMode}</p>}</div></div>
+    <fieldset><legend>Bicicletas do inventário desta aula</legend><p className="hint">A publicação exige inventário suficiente para a capacidade e sem conflito de horário em nenhuma ocorrência.</p>{bikes.loading && <Loading label="Carregando bicicletas…" />}{bikes.error !== undefined && <ErrorState error={bikes.error} retry={bikes.reload} />}{!bikes.loading && bikes.error === undefined && bikes.data && !bikes.data.some(item => !item.archivedAt) && <Empty title="Nenhuma bicicleta ativa.">Cadastre bicicletas antes de publicar uma aula.</Empty>}<div className={styles.inventory}>{bikes.data?.filter(item => !item.archivedAt).map(item => <label className="check-label" key={item.id}><input type="checkbox" checked={bikeIds.includes(item.id)} disabled={uncertain} onChange={event => setBikeIds(previous => event.target.checked ? [...previous, item.id] : previous.filter(id => id !== item.id))} />{item.label}</label>)}</div></fieldset>
+    <div className="field"><label htmlFor="new-session-status">Estado da aula</label><select id="new-session-status" value={values.status} onChange={set('status')} disabled={uncertain}><option value="draft">Rascunho</option><option value="published">Publicada</option></select></div>
+    {error !== undefined && <ErrorState error={error} />}{uncertain && <Notice tone="warning" alert>{repeat ? 'Não sabemos se esta série foi criada. Os campos estão bloqueados; você pode repetir exatamente o mesmo pedido, com a mesma chave, sem criar outra série, ou conferir a agenda.' : 'O resultado da criação é incerto. Confira a agenda antes de criar outra aula; não reenvie para evitar duplicidade.'}</Notice>}
+    <div className="actions"><Button type="submit" busy={busy} disabled={uncertain || dependenciesUnavailable}>Salvar aula{repeat ? 's semanais' : ''}</Button>{uncertain && repeat && seriesIntent.current && <Button type="button" busy={busy} onClick={() => void sendSeries(seriesIntent.current!)}>Repetir mesma série</Button>}<Button className="secondary" disabled={busy} onClick={() => { if (uncertain) revalidateStudio(); onClose(); }}>{uncertain ? 'Conferir agenda' : 'Descartar e fechar'}</Button></div>
+  </form></Modal>;
 }
 export function AdminSchedule({ create = false }: { create?: boolean }) {
   const [editor, setEditor] = useState(create);

@@ -57,6 +57,7 @@ const provider = createServer(async (request, response) => {
         else if (functionName === 'studio_read') result = await db.read(auth.actor, body.p_resource, body.p_id, body.p_query);
         else if (functionName === 'studio_catalog_search') result = await db.as(auth.actor, async c => (await c.query('select public.studio_catalog_search($1,$2,$3,$4) result', [body.p_resource, body.p_term, body.p_limit, body.p_offset])).rows[0].result);
         else if (functionName === 'studio_cancelled_history') result = await db.as(auth.actor, async c => (await c.query('select public.studio_cancelled_history($1,$2,$3) result', [body.p_limit, body.p_offset, body.p_session_id])).rows[0].result);
+        else if (functionName === 'studio_create_session_series') result = await db.as(auth.actor, async c => (await c.query('select public.studio_create_session_series($1::jsonb,$2,$3::uuid) result', [JSON.stringify(body.p_body), body.p_key, body.p_expected_actor])).rows[0].result);
         else if (functionName === 'studio_command') result = await command(auth.actor, body.p_action, body.p_body, body.p_id, body.p_key, body.p_version, body.p_expected_actor ?? null);
         else return send(404, { code: 'not_found' });
       }
