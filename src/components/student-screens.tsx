@@ -1,16 +1,25 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type ComponentProps, type FormEvent } from 'react';
 import type { SessionDTO } from '@/contracts';
 import { profileUpdate } from '@/contracts';
 import { api, reasonMessage, RequestError } from '@/lib/ui/api';
 import { allPages, revalidateStudio, useResource, useUnsavedChanges } from '@/lib/ui/hooks';
 import { browserRange, browserTimezone, dateInZone, dateLabel, localDate, sessionDate, shiftDate, timeLabel, weekStart } from '@/lib/ui/format';
 import type { BikeAvailability, PageResult, Profile, Reservation } from '@/lib/ui/types';
-import { Badge, Button, Empty, ErrorState, Field, focusInvalid, Icon, Loading, Modal, Notice, PageHeading, Pager, SkeletonScreen } from './ui';
+import { Badge, Button, Empty, ErrorState, Field as BaseField, focusInvalid, Icon, Loading, Modal, Notice, PageHeading, Pager, SkeletonScreen } from './ui';
 import { clearIntents, useOperations } from './operations';
 import { usePrivateApi } from './private-actor';
 import styles from './product.module.css';
+
+function Field(props: ComponentProps<typeof BaseField>) {
+  if (props.type !== 'date') return <BaseField {...props} />;
+  const value = typeof props.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(props.value) ? props.value : '';
+  return <div className={styles.dateField}>
+    <BaseField {...props} lang="pt-BR" />
+    {value && <time dateTime={value} className={styles.readableDate}>{dateLabel(`${value}T12:00:00`, browserTimezone(), { weekday: 'long', year: 'numeric' })}</time>}
+  </div>;
+}
 
 function SessionRow({ session, admin = false }: { session: SessionDTO; admin?: boolean }) {
   const own = session.myReservation?.status === 'confirmed';
@@ -26,13 +35,18 @@ export function Schedule({ admin = false }: { admin?: boolean }) {
   const [day, setDay] = useState(''); const [mode, setMode] = useState<'day' | 'week'>('day'); const [instructor, setInstructor] = useState('');
   useEffect(() => { setDay(localDate()); if (window.matchMedia('(min-width: 768px)').matches) setMode('week'); }, []);
   const start = day ? weekStart(day) : ''; const range = start ? browserRange(start, 7) : null;
+  useEffect(() => { setInstructor(''); }, [start]);
   const query = range ? `${admin ? 'admin/' : ''}sessions?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}` : null;
   const sessions = useResource<SessionDTO[]>(query, allPages);
   const instructors = Array.from(new Map((sessions.data ?? []).map(item => [item.instructor.id, item.instructor.name]))).sort((a, b) => a[1].localeCompare(b[1]));
-  const filtered = (sessions.data ?? []).filter(item => (!instructor || item.instructor.id === instructor) && (mode === 'week' || dateInZone(item.startsAt, browserTimezone()) === day));
+  useEffect(() => {
+    if (!sessions.loading && sessions.error === undefined && instructor && !sessions.data?.some(item => item.instructor.id === instructor)) setInstructor('');
+  }, [sessions.loading, sessions.error, sessions.data, instructor]);
+  const visibleInstructor = instructors.some(([id]) => id === instructor) ? instructor : '';
+  const filtered = (sessions.data ?? []).filter(item => (!visibleInstructor || item.instructor.id === visibleInstructor) && (mode === 'week' || dateInZone(item.startsAt, browserTimezone()) === day));
   const groups = new Map<string, SessionDTO[]>();
   for (const item of filtered) { const key = dateInZone(item.startsAt, browserTimezone()); groups.set(key, [...(groups.get(key) ?? []), item]); }
-  return <><PageHeading title={admin ? 'Agenda do Studio' : 'Encontre sua próxima aula'} description="Horários, instrutores e disponibilidade atualizados.">{admin ? <Link href="/admin/aulas/nova" className="button">Criar aula</Link> : <Link href="/aluno/reservas" className="button secondary">Minhas reservas</Link>}</PageHeading><div className={styles.scheduleTools}><div className={styles.dateNavigation}><Button className="secondary" aria-label={mode === 'week' ? 'Semana anterior' : 'Dia anterior'} disabled={!day} onClick={() => setDay(shiftDate(day, mode === 'week' ? -7 : -1))}><Icon name="chevron-left" /></Button><Field label="Data de referência" type="date" required value={day} onChange={event => { if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) setDay(event.target.value); }} /><Button className="secondary" aria-label={mode === 'week' ? 'Próxima semana' : 'Próximo dia'} disabled={!day} onClick={() => setDay(shiftDate(day, mode === 'week' ? 7 : 1))}><Icon name="chevron-right" /></Button><Button className="quiet" onClick={() => setDay(localDate())}>Hoje</Button></div><div className="field"><label htmlFor="instructor-filter">Instrutor nesta semana</label><select id="instructor-filter" value={instructor} onChange={event => setInstructor(event.target.value)}><option value="">Todos</option>{instructors.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div><div className="actions" role="group" aria-label="Visualização da agenda"><Button className={mode === 'day' ? '' : 'secondary'} aria-pressed={mode === 'day'} onClick={() => setMode('day')}>Dia</Button><Button className={mode === 'week' ? '' : 'secondary'} aria-pressed={mode === 'week'} onClick={() => setMode('week')}>Semana</Button></div></div>{start && <><div className={styles.week} aria-label="Dias da semana">{Array.from({ length: 7 }, (_, index) => shiftDate(start, index)).map(date => <button key={date} className={styles.day} aria-label={dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'long' })} aria-pressed={date === day} onClick={() => { setDay(date); setMode('day'); }}><span>{dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'short', day: undefined, month: undefined })}</span><span>{date.slice(-2)}</span></button>)}</div><p className="hint">Vagas não ficam retidas durante a consulta. A disponibilidade é confirmada na reserva.</p></>}{sessions.loading && !sessions.data && <SkeletonScreen />}{sessions.error !== undefined ? <ErrorState error={sessions.error} retry={sessions.reload} /> : !sessions.loading && !filtered.length ? <Empty title={instructor ? 'Nenhuma aula com este filtro.' : 'Nenhuma aula neste período.'}>Escolha outro dia ou consulte a semana completa.</Empty> : Array.from(groups).map(([date, items]) => <section key={date} aria-label={date}><h2 className={styles.dayHeading}>{dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'long', year: 'numeric' })}</h2>{items.map(session => <SessionRow key={session.id} session={session} admin={admin} />)}</section>)}</>;
+  return <><PageHeading title={admin ? 'Agenda do Studio' : 'Encontre sua próxima aula'} description="Horários, instrutores e disponibilidade atualizados.">{admin ? <Link href="/admin/aulas/nova" className="button">Criar aula</Link> : <Link href="/aluno/reservas" className="button secondary">Minhas reservas</Link>}</PageHeading><div className={styles.scheduleTools}><div className={styles.dateNavigation}><Button className="secondary" aria-label={mode === 'week' ? 'Semana anterior' : 'Dia anterior'} disabled={!day} onClick={() => setDay(shiftDate(day, mode === 'week' ? -7 : -1))}><Icon name="chevron-left" /></Button><Field label="Data de referência" type="date" required value={day} onChange={event => { if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) setDay(event.target.value); }} /><Button className="secondary" aria-label={mode === 'week' ? 'Próxima semana' : 'Próximo dia'} disabled={!day} onClick={() => setDay(shiftDate(day, mode === 'week' ? 7 : 1))}><Icon name="chevron-right" /></Button><Button className="quiet" onClick={() => setDay(localDate())}>Hoje</Button></div><div className="field"><label htmlFor="instructor-filter">Instrutor nesta semana</label><select id="instructor-filter" value={visibleInstructor} onChange={event => setInstructor(event.target.value)}><option value="">Todos</option>{instructors.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div><div className="actions" role="group" aria-label="Visualização da agenda"><Button className={mode === 'day' ? '' : 'secondary'} aria-pressed={mode === 'day'} onClick={() => setMode('day')}>Dia</Button><Button className={mode === 'week' ? '' : 'secondary'} aria-pressed={mode === 'week'} onClick={() => setMode('week')}>Semana</Button></div></div>{start && <><div className={styles.week} aria-label="Dias da semana">{Array.from({ length: 7 }, (_, index) => shiftDate(start, index)).map(date => <button key={date} className={styles.day} aria-label={dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} aria-pressed={date === day} onClick={() => { setDay(date); setMode('day'); }}><span>{dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'short', day: undefined, month: undefined })}</span><span>{date.slice(-2)}</span></button>)}</div><p className="hint">Vagas não ficam retidas durante a consulta. A disponibilidade é confirmada na reserva.</p></>}{sessions.loading && !sessions.data && <SkeletonScreen />}{sessions.error !== undefined ? <ErrorState error={sessions.error} retry={sessions.reload} /> : !sessions.loading && !filtered.length ? <Empty title={visibleInstructor ? 'Nenhuma aula com este filtro.' : 'Nenhuma aula neste período.'}>Escolha outro dia ou consulte a semana completa.</Empty> : Array.from(groups).map(([date, items]) => <section key={date} aria-label={date}><h2 className={styles.dayHeading}>{dateLabel(`${date}T12:00:00`, browserTimezone(), { weekday: 'long', year: 'numeric' })}</h2>{items.map(session => <SessionRow key={session.id} session={session} admin={admin} />)}</section>)}</>;
 }
 
 export function SessionDetail({ id }: { id: string }) {
@@ -54,9 +68,17 @@ export function ReservationRow({ reservation, admin = false }: { reservation: Re
 }
 export function Reservations({ history = false }: { history?: boolean }) {
   const [offset, setOffset] = useState(0); const [cancelledOnly, setCancelledOnly] = useState(false);
-  const list = useResource<PageResult<Reservation>>(`me/reservations?history=${history}&limit=20&offset=${offset}`);
-  const items = list.data?.items.filter(item => !cancelledOnly || item.status === 'cancelled') ?? [];
-  return <><PageHeading title={history ? 'Seu histórico' : 'Minhas reservas'} description={history ? 'Reservas canceladas e aulas encerradas, sem apagar sua trajetória.' : 'Reservas confirmadas em aulas publicadas pelo Studio.'}><Link href="/aluno/agenda" className="button" prefetch={true}>Ver agenda<Icon name="arrow" /></Link></PageHeading><nav className="tabs" aria-label="Período das reservas"><Link href="/aluno/reservas" prefetch={true} aria-current={!history ? 'page' : undefined}>Próximas / ativas</Link><Link href="/aluno/historico" prefetch={true} aria-current={history ? 'page' : undefined}>Histórico</Link></nav>{history && <label className="check-label"><input type="checkbox" checked={cancelledOnly} onChange={event => setCancelledOnly(event.target.checked)} />Somente canceladas nesta página</label>}{list.loading && !list.data ? <SkeletonScreen /> : list.error !== undefined ? <ErrorState error={list.error} retry={list.reload} /> : list.data && !items.length ? <Empty title={cancelledOnly ? 'Nenhuma cancelada nesta página.' : history ? 'Seu histórico ainda está em branco.' : 'Você ainda não tem reservas ativas.'} href="/aluno/agenda">{history ? 'Aulas concluídas e cancelamentos aparecerão aqui.' : 'Escolha um horário na agenda para começar.'}</Empty> : items.map(item => <ReservationRow key={item.id} reservation={item} />)}{list.data && <Pager offset={offset} count={list.data.items.length} limit={20} onChange={setOffset} />}<p className="hint">O histórico segue o estado da aula e da reserva informado pelo Studio. “Não marcada” não significa falta.</p></>;
+  const query = `me/reservations?history=${history}${history && cancelledOnly ? '&cancelledOnly=true' : ''}&limit=20&offset=${offset}`;
+  const list = useResource<PageResult<Reservation>>(query);
+  const items = list.data?.items ?? [];
+  return <>
+    <PageHeading title={history ? 'Seu histórico' : 'Minhas reservas'} description={history ? 'Reservas canceladas e aulas encerradas, sem apagar sua trajetória.' : 'Reservas confirmadas em aulas publicadas pelo Studio.'}><Link href="/aluno/agenda" className="button" prefetch={true}>Ver agenda<Icon name="arrow" /></Link></PageHeading>
+    <nav className="tabs" aria-label="Período das reservas"><Link href="/aluno/reservas" prefetch={true} aria-current={!history ? 'page' : undefined}>Próximas / ativas</Link><Link href="/aluno/historico" prefetch={true} aria-current={history ? 'page' : undefined}>Histórico</Link></nav>
+    {history && <label className="check-label"><input type="checkbox" checked={cancelledOnly} onChange={event => { setOffset(0); setCancelledOnly(event.target.checked); }} />Somente canceladas</label>}
+    {list.loading && !list.data ? <SkeletonScreen /> : list.error !== undefined ? <ErrorState error={list.error} retry={list.reload} /> : list.data && !items.length ? <Empty title={cancelledOnly ? 'Nenhuma reserva cancelada' : history ? 'Seu histórico ainda está em branco.' : 'Você ainda não tem reservas ativas.'} href="/aluno/agenda">{cancelledOnly ? 'Consulte o histórico completo ou escolha uma aula na agenda.' : history ? 'Aulas concluídas e cancelamentos aparecerão aqui.' : 'Escolha um horário na agenda para começar.'}</Empty> : items.map(item => <ReservationRow key={item.id} reservation={item} />)}
+    {list.data && list.error === undefined && <Pager offset={offset} count={list.data.items.length} limit={20} onChange={setOffset} />}
+    <p className="hint">O histórico segue o estado da aula e da reserva informado pelo Studio. “Não marcada” não significa falta.</p>
+  </>;
 }
 export function StudentProfile() {
   const privateApi = usePrivateApi();

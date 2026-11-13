@@ -45,8 +45,9 @@ export const attendanceMark = z.strictObject({ status: z.enum(['present', 'absen
 export const listQuery = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).optional(), offset: z.coerce.number().int().min(0).max(100000).optional(),
   from: z.iso.datetime({ offset: true }).optional(), to: z.iso.datetime({ offset: true }).optional(),
-  history: z.enum(['true', 'false']).transform(v => v === 'true').optional(), sessionId: uuid.optional(), studentId: uuid.optional(),
-});
+  history: z.enum(['true', 'false']).transform(v => v === 'true').optional(), cancelledOnly: z.literal('true').transform(() => true).optional(), sessionId: uuid.optional(), studentId: uuid.optional(),
+  q: z.string().trim().max(120).optional(),
+}).refine(v => !v.cancelledOnly || v.history === true, { path: ['history'] });
 export const operationKey = z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/);
 
 export type SessionIdentity = { userId: string; role: 'student' | 'admin'; studentId: string | null };

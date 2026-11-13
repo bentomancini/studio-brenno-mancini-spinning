@@ -28,6 +28,30 @@ beforeAll(async()=> {
 });
 afterAll(async()=> { console.log(`Native PostgreSQL independent backend processes observed: ${db.backendPids.size}`); await db.stop(); });
 
+test('catalog search filters before pagination, includes archives, treats wildcards literally and enforces admin scope',async()=> {
+  const search = (actor:Actor,resource:string,term:string,limit=20,offset=0) => db.as(actor,async c =>
+    (await c.query('select public.studio_catalog_search($1,$2,$3,$4) result',[resource,term,limit,offset])).rows[0].result as Json);
+  const suffix=key().slice(0,8);
+  const students=await Promise.all(Array.from({length:23},(_,n)=>db.command(admin,'admin.students.create',{
+    fullName:`TEST Find ${suffix} ${String(n).padStart(2,'0')}`, contactEmail:n===22?`lookup-${suffix}@example.invalid`:null,
+  })));
+  const archived=students[22]; await db.command(admin,'admin.students.archive',{},archived.id as string,null,archived.version as number);
+  expect(items(await search(admin,'students',`find ${suffix}`,20,0))).toHaveLength(20);
+  expect(items(await search(admin,'students',`find ${suffix}`,20,20))).toHaveLength(3);
+  expect(items(await search(admin,'students',`lookup-${suffix}`))[0]).toMatchObject({id:archived.id,archivedAt:expect.any(String)});
+  expect(items(await search(admin,'students','%'))).toHaveLength(0);
+  const instructor=await db.command(admin,'admin.instructors.create',{name:`TEST Coach ${suffix}`});
+  const bike=await db.command(admin,'admin.bikes.create',{label:`TEST Bike ${suffix}`});
+  expect(items(await search(admin,'instructors',suffix))[0].id).toBe(instructor.id);
+  expect(items(await search(admin,'bikes',suffix))[0].id).toBe(bike.id);
+  const student=await db.actor();
+  await expect(search(student,'students',suffix)).rejects.toMatchObject({code:'PT403'});
+  await expect(db.as(null,c=>c.query("select public.studio_catalog_search('students','test')"),'anon')).rejects.toMatchObject({code:'42501'});
+  await expect(search(admin,'students',' ',20)).rejects.toMatchObject({code:'PT422'});
+  await expect(search(admin,'students',suffix,101)).rejects.toMatchObject({code:'PT422'});
+  await expect(search(admin,'settings',suffix)).rejects.toMatchObject({code:'PT422'});
+});
+
 describe('original migrations / RBAC / Auth session guard',()=> {
   test('default unconfigured policies block publishing, not a hidden commercial rule',async()=> {
     await expect(createClass()).rejects.toMatchObject({code:'PT409',message:'POLICY_UNCONFIGURED'});
@@ -477,4 +501,34 @@ describe('admin business invariants / optimistic concurrency',()=> {
     expect(await confirmed(session.id)).toBe(1); // Archive is NOT a hidden cancellation or hard delete.
     expect((await db.read(admin,'admin.reservations',resourceId(created))).status).toBe('confirmed');
   });
+});
+
+test('cancelled history RPC filters before pagination and isolates the authenticated student',async()=> {
+  await configure(testPolicies);
+  const readCancelled=(actor:Actor,limit=30,offset=0,sessionId:string|null=null) => db.as(actor,async c =>
+    (await c.query('select public.studio_cancelled_history($1,$2,$3) result',[limit,offset,sessionId])).rows[0].result as Json);
+  const actor=await db.actor(); const other=await db.actor();
+  const sessions=await Promise.all(Array.from({length:5},()=>createClass()));
+  const created=[];
+  for(const session of sessions) created.push(resourceId(await reserve(actor,session)));
+  for(const index of [0,2,4]) expect((await db.command(actor,'cancel',{},created[index],key())).outcome).toBe('applied');
+  await db.command(admin,'admin.sessions.update',{status:'completed'},sessions[1].id as string,null,1);
+  const otherSession=await createClass();const otherId=resourceId(await reserve(other,otherSession));
+  await db.command(other,'cancel',{},otherId,key());
+  const history=items(await db.read(actor,'reservations',null,{history:true}));
+  expect(history.map(r=>r.id)).toEqual(expect.arrayContaining([created[0],created[2],created[4]]));
+  expect(history).toEqual(expect.arrayContaining([expect.objectContaining({id:created[1],status:'confirmed'})]));
+  const first=items(await readCancelled(actor,2,0));const second=items(await readCancelled(actor,2,2));
+  expect(first).toHaveLength(2);expect(second).toHaveLength(1);
+  expect(new Set([...first,...second].map(r=>r.id))).toEqual(new Set([created[0],created[2],created[4]]));
+  expect([...first,...second].every(r=>r.status==='cancelled' && r.studentId===actor.studentId && 'session' in r)).toBe(true);
+  expect(items(await readCancelled(actor,20,0,sessions[2].id as string)).map(r=>r.id)).toEqual([created[2]]);
+  expect(items(await readCancelled(actor,20,0,otherSession.id as string))).toHaveLength(0);
+  expect(items(await readCancelled(other)).map(r=>r.id)).toEqual([otherId]);
+  await expect(db.as(null,c=>c.query('select public.studio_cancelled_history()'),'anon')).rejects.toMatchObject({code:'42501'});
+  await expect(db.as(null,c=>c.query('select public.studio_cancelled_history()'),'service_role')).rejects.toMatchObject({code:'42501'});
+  await expect(readCancelled(actor,101)).rejects.toMatchObject({code:'PT422'});
+  await expect(readCancelled(actor,20,-1)).rejects.toMatchObject({code:'PT422'});
+  await db.session(actor,'revoke');
+  await expect(readCancelled(actor)).rejects.toMatchObject({code:'PT401'});
 });

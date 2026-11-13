@@ -84,7 +84,11 @@ export async function dispatch(request: Request, path: string[]): Promise<unknow
     if (method === 'PATCH') return { ...await command('me.update', await body(request, C.profileUpdate), null, version(request)), email: user.email ?? null };
   }
   if (path[0] === 'me' && path[1] === 'operations' && path.length === 3 && method === 'GET') return read('operations', null, { key: C.operationKey.parse(path[2]) });
-  if (path.join('/') === 'me/reservations' && method === 'GET') return read('reservations', null, parseQuery(request, ['limit', 'offset', 'history', 'sessionId']));
+  if (path.join('/') === 'me/reservations' && method === 'GET') {
+    const query = parseQuery(request, ['limit', 'offset', 'history', 'sessionId', 'cancelledOnly']);
+    if (query.cancelledOnly) return rpc(client, 'studio_cancelled_history', { p_limit: query.limit ?? 30, p_offset: query.offset ?? 0, p_session_id: query.sessionId ?? null });
+    return read('reservations', null, query);
+  }
   if (path[0] === 'sessions' && method === 'GET') {
     if (path.length === 1) return read('sessions', null, parseQuery(request, ['limit', 'offset', 'from', 'to']));
     if (path.length === 2) return read('sessions', id(path[1]));
@@ -132,7 +136,13 @@ export async function dispatch(request: Request, path: string[]): Promise<unknow
       bikes: { create: C.bikeCreate, update: C.bikeUpdate }, sessions: { create: C.sessionCreate, update: C.sessionUpdate },
     };
     if (schemas[resource]) {
-      if (path.length === 2 && method === 'GET') return read(`admin.${resource}`, null, parseQuery(request, resource === 'sessions' ? ['limit', 'offset', 'from', 'to'] : ['limit', 'offset']));
+      if (path.length === 2 && method === 'GET') {
+        const query = parseQuery(request, resource === 'sessions' ? ['limit', 'offset', 'from', 'to'] : ['limit', 'offset', 'q']);
+        if (resource !== 'sessions' && query.q) return rpc(client, 'studio_catalog_search', {
+          p_resource: resource, p_term: query.q, p_limit: query.limit ?? 30, p_offset: query.offset ?? 0,
+        });
+        return read(`admin.${resource}`, null, query);
+      }
       if (path.length === 3 && method === 'GET') return read(`admin.${resource}`, id(path[2]));
       if (path.length === 2 && method === 'POST') return command(`admin.${resource}.create`, await body(request, schemas[resource].create));
       if (path.length === 3 && method === 'PATCH') return command(`admin.${resource}.update`, await body(request, schemas[resource].update), id(path[2]), version(request));

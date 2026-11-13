@@ -29,11 +29,13 @@ test('mobile date navigation keeps date, arrows and Today separated', async ({ p
       expect(Math.abs(instructor!.width - b!.width)).toBeLessThan(1);
       expect(Math.abs(dayMode!.width - weekMode!.width)).toBeLessThan(1);
       const days = page.locator('[aria-label="Dias da semana"] button');
-      const first = await days.first().boundingBox(); const last = await days.last().boundingBox();
+      const first = await days.first().boundingBox(); const fourth = await days.nth(3).boundingBox(); const fifth = await days.nth(4).boundingBox(); const last = await days.last().boundingBox();
       expect(Math.abs(first!.x - b!.x)).toBeLessThan(1);
-      expect(Math.abs(last!.x + last!.width - b!.x - b!.width)).toBeLessThan(1);
-      expect(Math.abs(first!.y - last!.y)).toBeLessThan(3);
-      expect(last!.width).toBeGreaterThanOrEqual(24);
+      expect(Math.abs(fourth!.x + fourth!.width - b!.x - b!.width)).toBeLessThan(1);
+      expect(Math.abs(first!.y - fourth!.y)).toBeLessThan(3);
+      expect(fifth!.y).toBeGreaterThan(first!.y + first!.height);
+      expect(last!.x + last!.width).toBeLessThanOrEqual(b!.x + b!.width + 1);
+      for (const day of await days.all()) expect((await day.boundingBox())!.width).toBeGreaterThanOrEqual(44);
       const original = await date.inputValue();
       await next.click(); await expect(date).not.toHaveValue(original);
       await today.click(); await expect(date).toHaveValue(original);

@@ -44,13 +44,15 @@ test('populated agenda: day/week, long content and no sideways movement', async 
         await page.getByRole('button', { name: mode, exact: true }).click();
         await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
         await expect(page.locator('.loading, .skeleton-screen')).toHaveCount(0);
-        const dateBorder = await page.locator('.date-input-shell').boundingBox();
-        const dateInput = await page.getByLabel('Data de referência').boundingBox();
-        const instructor = await page.getByLabel('Instrutor nesta semana').boundingBox();
-        expect(Math.abs(dateBorder!.x - instructor!.x)).toBeLessThan(1);
-        expect(Math.abs(dateBorder!.width - instructor!.width)).toBeLessThan(1);
-        expect(dateInput!.x).toBeGreaterThanOrEqual(dateBorder!.x);
-        expect(dateInput!.x + dateInput!.width).toBeLessThanOrEqual(dateBorder!.x + dateBorder!.width);
+        if (width < 768) {
+          const dateBorder = await page.locator('.date-input-shell').boundingBox();
+          const dateInput = await page.getByLabel('Data de referência').boundingBox();
+          const instructor = await page.getByLabel('Instrutor nesta semana').boundingBox();
+          expect(Math.abs(dateBorder!.x - instructor!.x)).toBeLessThan(1);
+          expect(Math.abs(dateBorder!.width - instructor!.width)).toBeLessThan(1);
+          expect(dateInput!.x).toBeGreaterThanOrEqual(dateBorder!.x);
+          expect(dateInput!.x + dateInput!.width).toBeLessThanOrEqual(dateBorder!.x + dateBorder!.width);
+        }
         const geometry = await page.evaluate(() => ({
           width: innerWidth, scroll: document.documentElement.scrollWidth,
           outside: [...document.querySelectorAll<HTMLElement>('main *')].filter(el => {

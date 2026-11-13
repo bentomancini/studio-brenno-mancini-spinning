@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import type { OperationResult, ReservationDTO } from '@/contracts';
+import { listQuery, type OperationResult, type ReservationDTO } from '@/contracts';
 import { api, errorMessage, RequestError } from '@/lib/ui/api';
 import { authoritativeResource, intentRequest, operationMessage, readIntents, type Intent } from '@/lib/ui/intent';
 import { safeReturnTo } from '@/lib/ui/navigation';
@@ -13,6 +13,11 @@ const actor = randomUUID(); const sessionId = randomUUID();
 const intent: Intent = { action: 'reserve', sessionId, key: randomUUID(), bikeId: randomUUID() };
 const reservation: ReservationDTO = { id: randomUUID(), sessionId, studentId: randomUUID(), bikeId: null, status: 'confirmed', createdAt: '2035-01-01T00:00:00Z', cancelledAt: null, version: 1, attendance: 'unmarked' };
 describe('frontend booking safety, read models and navigation', () => {
+  test('catalog query trims search and bounds its length and pagination', () => {
+    expect(listQuery.parse({q:'  Maria  ',limit:'20',offset:'40'})).toMatchObject({q:'Maria',limit:20,offset:40});
+    expect(listQuery.safeParse({q:'x'.repeat(121)}).success).toBe(false);
+    expect(listQuery.safeParse({q:'Maria',offset:'100001'}).success).toBe(false);
+  });
   test('durable intention roundtrips only for its actor and rejects arbitrary extra stored data', () => {
     const raw = JSON.stringify({ actor, items: [intent] });
     expect(readIntents(raw, actor)).toEqual([intent]); expect(readIntents(raw, randomUUID())).toEqual([]);

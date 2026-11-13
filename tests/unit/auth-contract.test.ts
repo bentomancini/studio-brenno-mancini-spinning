@@ -46,6 +46,29 @@ beforeEach(()=> {
 });
 
 describe('BFF auth/authorization and no token disclosure',()=> {
+  test('cancelledOnly routes only authenticated me/history=true to the read-only RPC',async()=> {
+    const filtered=await handle(request('me/reservations?history=true&cancelledOnly=true&limit=20&offset=40'),['me','reservations']);
+    expect(filtered.status).toBe(200);
+    expect(fakes.normal.rpc).toHaveBeenCalledWith('studio_cancelled_history',{p_limit:20,p_offset:40,p_session_id:null});
+    fakes.normal.rpc.mockClear();
+    const sessionFilter=randomUUID();
+    expect((await handle(request(`me/reservations?history=true&cancelledOnly=true&sessionId=${sessionFilter}`),['me','reservations'])).status).toBe(200);
+    expect(fakes.normal.rpc).toHaveBeenCalledWith('studio_cancelled_history',{p_limit:30,p_offset:0,p_session_id:sessionFilter});
+    fakes.normal.rpc.mockClear();
+    expect((await handle(request('me/reservations?history=true&limit=20'),['me','reservations'])).status).toBe(200);
+    expect(fakes.normal.rpc).toHaveBeenCalledWith('studio_read',expect.objectContaining({p_resource:'reservations',p_query:{history:true,limit:20}}));
+    expect(fakes.normal.rpc.mock.calls.some(([name])=>name==='studio_cancelled_history')).toBe(false);
+    for(const query of ['cancelledOnly=true','history=false&cancelledOnly=true','history=true&cancelledOnly=false']) {
+      const response=await handle(request(`me/reservations?${query}`),['me','reservations']);
+      expect(response.status).toBe(422);
+    }
+    const other=await handle(request('sessions?cancelledOnly=true'),['sessions']);
+    expect(other.status).toBe(422);
+    fakes.normal.rpc.mockResolvedValue({data:{...identity,role:'admin'},error:null});
+    const admin=await handle(request('admin/reservations?cancelledOnly=true'),['admin','reservations']);
+    expect(admin.status).toBe(422);
+    expect(fakes.normal.rpc.mock.calls.some(([name])=>name==='studio_cancelled_history')).toBe(false);
+  });
   test('private mutations require a valid expected actor; missing/malformed headers cause no command or external effect',async()=> {
     for(const value of [null,'','not-a-uuid',`${userId},${randomUUID()}`]) {
       const req=request('reservations','POST',{sessionId:randomUUID()},{'idempotency-key':'held-intention-key'});
