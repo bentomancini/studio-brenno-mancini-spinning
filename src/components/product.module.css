@@ -16,6 +16,8 @@
 .scheduleTools { display: flex; align-items: end; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; min-width: 0; max-width: 100%; }
 .dateNavigation { display: flex; gap: 12px; align-items: end; }
 .dateNavigation :global(.field) { max-width: 200px; }
+.dateNavigation > :global(.button.quiet) { color: var(--accent); background: var(--surface); border-color: var(--control); }
+.dateNavigation > :global(.button.quiet:hover:not(:disabled)) { color: var(--accent-hover); background: var(--surface-raised); border-color: var(--accent); }
 
 /* Seletor semanal em formato de cápsulas / pills modernas */
 .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; margin-bottom: 28px; }
