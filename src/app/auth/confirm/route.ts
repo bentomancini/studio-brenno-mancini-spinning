@@ -30,16 +30,16 @@ export async function POST(request: Request) {
     const scope = input.type === 'recovery' ? 'recovery' : 'normal'; const client = await serverClient(scope);
     const { error } = await client.auth.verifyOtp({ token_hash: input.tokenHash, type: input.type });
     if (error) {
-      console.error('[auth/confirm] verifyOtp error:', error.message || error);
+      console.error('[auth/confirm] verifyOtp failed');
       await clearAuthCookies(scope);
       throw new ApiError(401, 'CONFIRMATION_INVALID');
     }
     if (scope === 'recovery') {
       try {
         await grantRecovery(client);
-      } catch (err) {
-        console.error('[auth/confirm] grantRecovery error:', err);
-        throw err;
+      } catch (error) {
+        console.error('[auth/confirm] grantRecovery failed');
+        throw error;
       }
       return { recoveryVerified: true, nextAction: 'POST /api/v1/auth/reset-password' };
     }

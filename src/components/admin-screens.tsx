@@ -105,7 +105,7 @@ export function AdminSessionDetail({ id }: { id: string }) {
 
 export function AdminReservations({ sessionId: fixedSession, embedded = false }: { sessionId?: string; embedded?: boolean }) {
   const [sessionId, setSessionId] = useState(fixedSession ?? ''); const [studentId, setStudentId] = useState(''); const [history, setHistory] = useState(''); const [offset, setOffset] = useState(0); const [create, setCreate] = useState(false);
-  const sessions = useResource<SessionDTO[]>('admin/sessions', allPages); const students = useResource<Student[]>('admin/students', allPages);
+  const sessions = useResource<SessionDTO[]>(fixedSession && !create ? null : 'admin/sessions', allPages); const students = useResource<Student[]>('admin/students', allPages);
   const query = `admin/reservations?limit=20&offset=${offset}${sessionId ? `&sessionId=${sessionId}` : ''}${studentId ? `&studentId=${studentId}` : ''}${history ? `&history=${history}` : ''}`;
   const list = useResource<PageResult<Reservation>>(query);
   const filters = <><div className="field"><label htmlFor="reservation-student">Aluno</label><select id="reservation-student" value={studentId} onChange={event => { setStudentId(event.target.value); setOffset(0); }}><option value="">Todos</option>{students.data?.map(item => <option key={item.id} value={item.id}>{item.fullName}{item.archivedAt ? ' (arquivado)' : ''}</option>)}</select></div>{!fixedSession && <div className="field"><label htmlFor="reservation-session">Aula</label><select id="reservation-session" value={sessionId} onChange={event => { setSessionId(event.target.value); setOffset(0); }}><option value="">Todas</option>{sessions.data?.map(item => <option key={item.id} value={item.id}>{item.title} · {sessionDate(item)} · {timeLabel(item.startsAt, item.timezone)}</option>)}</select></div>}<div className="field"><label htmlFor="reservation-history">Situação</label><select id="reservation-history" value={history} onChange={event => { setHistory(event.target.value); setOffset(0); }}><option value="">Todas</option><option value="false">Ativas em aulas publicadas</option><option value="true">Histórico / canceladas</option></select></div></>;
@@ -121,8 +121,8 @@ function AdminReserveDialog({ sessions, students, initialSession, onClose, loadi
 
 export function AdminAttendance() {
   const privateApi = usePrivateApi();
-  const sessions = useResource<SessionDTO[]>('admin/sessions', allPages); const students = useResource<Student[]>('admin/students', allPages);
   const [sessionId, setSessionId] = useState(''); const [offset, setOffset] = useState(0); const [busy, setBusy] = useState<string | null>(null); const [error, setError] = useState<unknown>(); const [success, setSuccess] = useState('');
+  const sessions = useResource<SessionDTO[]>('admin/sessions', allPages); const students = useResource<Student[]>(sessionId ? 'admin/students' : null, allPages);
   const list = useResource<PageResult<Reservation>>(sessionId ? `admin/attendance?sessionId=${sessionId}&limit=30&offset=${offset}` : null);
   async function mark(reservation: Reservation, status: 'present' | 'absent' | 'unmarked') {
     if (busy) return; setBusy(reservation.id); setError(undefined); setSuccess('');

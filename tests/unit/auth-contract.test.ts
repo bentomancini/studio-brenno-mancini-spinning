@@ -213,6 +213,17 @@ describe('BFF auth/authorization and no token disclosure',()=> {
     const response = await confirmForm(new Request('http://localhost:3000/auth/confirm', { method: 'POST', headers: { origin: 'https://foreign.example', 'content-type': 'application/x-www-form-urlencoded' }, body: 'tokenHash=controlled-test-token-hash&type=recovery' }));
     expect(response.status).toBe(403); expect(response.headers.get('content-type')).toContain('text/html'); expect(fakes.recovery.auth.verifyOtp).not.toHaveBeenCalled(); expect(fakes.admin.rpc).not.toHaveBeenCalled();
   });
+  test('HTML confirmation errors never log provider details or recovery tokens',async()=> {
+    const log = vi.spyOn(console,'error').mockImplementation(()=>{});
+    const confirm = () => confirmForm(new Request('http://localhost:3000/auth/confirm', { method: 'POST', headers: { origin: 'http://localhost:3000', 'content-type': 'application/x-www-form-urlencoded' }, body: 'tokenHash=controlled-test-token-hash&type=recovery' }));
+    try {
+      fakes.recovery.auth.verifyOtp.mockResolvedValueOnce({error:{message:'private provider detail controlled-test-token-hash'}});
+      expect((await confirm()).status).toBe(401);
+      fakes.admin.rpc.mockImplementation(async(_name,args)=>args.p_action==='recovery_grant'?{data:null,error:{code:'XX000',message:'private grant detail controlled-test-token-hash'}}:{data:{allowed:true},error:null});
+      expect((await confirm()).status).toBe(503);
+      expect(JSON.stringify(log.mock.calls)).not.toMatch(/private provider detail|private grant detail|controlled-test-token-hash/);
+    } finally { log.mockRestore(); }
+  });
   test('persistent rate limiter denial returns 429 without invoking signIn',async()=> {
     fakes.admin.rpc.mockResolvedValueOnce({data:{allowed:false},error:null});
     const response=await api('auth/login','POST',{email:user.email,password:'x'}); expect(response.status).toBe(429); expect(response.headers.get('retry-after')).toBe('60'); expect(fakes.normal.auth.signInWithPassword).not.toHaveBeenCalled();
