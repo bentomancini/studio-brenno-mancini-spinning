@@ -1,25 +1,16 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState, type ComponentProps, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { SessionDTO } from '@/contracts';
 import { profileUpdate } from '@/contracts';
 import { api, reasonMessage, RequestError } from '@/lib/ui/api';
 import { allPages, revalidateStudio, useResource, useUnsavedChanges } from '@/lib/ui/hooks';
 import { browserRange, browserTimezone, dateInZone, dateLabel, localDate, sessionDate, shiftDate, timeLabel, weekStart } from '@/lib/ui/format';
 import type { BikeAvailability, PageResult, Profile, Reservation } from '@/lib/ui/types';
-import { Badge, Button, Empty, ErrorState, Field as BaseField, focusInvalid, Icon, Loading, Modal, Notice, PageHeading, Pager, SkeletonScreen } from './ui';
+import { Badge, Button, Empty, ErrorState, Field, focusInvalid, Icon, Loading, Modal, Notice, PageHeading, Pager, SkeletonScreen } from './ui';
 import { clearIntents, useOperations } from './operations';
 import { usePrivateApi } from './private-actor';
 import styles from './product.module.css';
-
-function Field(props: ComponentProps<typeof BaseField>) {
-  if (props.type !== 'date') return <BaseField {...props} />;
-  const value = typeof props.value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(props.value) ? props.value : '';
-  return <div className={styles.dateField}>
-    <BaseField {...props} lang="pt-BR" />
-    {value && <time dateTime={value} className={styles.readableDate}>{dateLabel(`${value}T12:00:00`, browserTimezone(), { weekday: 'long', year: 'numeric' })}</time>}
-  </div>;
-}
 
 function SessionRow({ session, admin = false }: { session: SessionDTO; admin?: boolean }) {
   const own = session.myReservation?.status === 'confirmed';

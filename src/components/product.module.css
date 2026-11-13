@@ -15,9 +15,7 @@
 .time { font-size: 22px; line-height: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .scheduleTools { display: flex; align-items: end; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; min-width: 0; max-width: 100%; }
 .dateNavigation { display: flex; gap: 12px; align-items: end; }
-.dateNavigation .dateField { min-width: 0; max-width: 240px; }
-.dateField :global(.field) { min-width: 0; }
-.readableDate { display: block; margin-top: 6px; color: var(--secondary); font-size: 14px; line-height: 1.4; text-transform: capitalize; }
+.dateNavigation :global(.field) { width: 216px; min-width: 0; }
 .dateNavigation > :global(.button.quiet) { color: var(--accent); background: var(--surface); border-color: var(--control); }
 .dateNavigation > :global(.button.quiet:hover:not(:disabled)) { color: var(--accent-hover); background: var(--surface-raised); border-color: var(--accent); }
 
@@ -83,6 +81,8 @@
 .reservationRow h2 a:hover { color: var(--accent); text-decoration: underline; }
 .reservationRow p { margin-bottom: 6px; color: var(--secondary); font-size: 15px; }
 .reservationRow > :global(.actions) { justify-content: end; align-content: center; }
+.reservationRow :global(.button.quiet), .profileFoot :global(.button.quiet) { background: var(--surface); border-color: var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.reservationRow :global(.button.quiet:hover:not(:disabled)), .profileFoot :global(.button.quiet:hover:not(:disabled)) { background: var(--surface-raised); color: var(--text); border-color: var(--control); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
 .profile { max-width: 640px; }
 .profile :global(.form-stack) { margin-top: 24px; }
@@ -154,7 +154,7 @@
   .catalogToolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: stretch; }
   .catalogToolbar :global(.field) { min-width: 0; width: 100%; }
   .dateNavigation { display: grid; width: 100%; min-width: 0; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 12px; }
-  .dateNavigation .dateField { grid-column: 1 / -1; grid-row: 1; max-width: 100%; min-width: 0; }
+  .dateNavigation :global(.field) { grid-column: 1 / -1; grid-row: 1; width: 100%; min-width: 0; }
   .dateNavigation > :global(.button) { grid-row: 2; min-width: 0; padding-inline: 8px; }
   .dateNavigation > :global(.button):first-child { grid-column: 1; }
   .dateNavigation > :global(.button):nth-child(3) { grid-column: 3; }
