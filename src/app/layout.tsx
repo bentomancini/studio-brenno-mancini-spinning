@@ -13,13 +13,12 @@ export const metadata: Metadata = {
   verification: { google: ['QZQE1NBuZd0-tgmrA_CxNZ0qHkhmH-lShpg41MZqg-k', 'dVia4LCzlHoHvA1iH9TR6Oa6Sx73fLrWVsf51Zgd0H8'] },
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
-    shortcut: '/icon.svg',
+    shortcut: '/icon-192.png',
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
