@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: { default: 'Studio Brenno Mancini Spinning', template: '%s | Studio Brenno Mancini' },
   description: 'Consulte a agenda e gerencie suas reservas de spinning no Studio Brenno Mancini.',
   robots: { index: false, follow: false },
-  verification: { google: 'QZQE1NBuZd0-tgmrA_CxNZ0qHkhmH-lShpg41MZqg-k' },
+  verification: { google: ['QZQE1NBuZd0-tgmrA_CxNZ0qHkhmH-lShpg41MZqg-k', 'dVia4LCzlHoHvA1iH9TR6Oa6Sx73fLrWVsf51Zgd0H8'] },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
